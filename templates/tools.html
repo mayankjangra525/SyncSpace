@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tools</title>
+     <script src="https://cdn.tailwindcss.com"></script>
+    <script> tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              900: "#080808",
+              800: "#111111",
+              700: "#171717",
+            },
+            primary: "#6366f1"
+          }
+        }
+      }
+    }
+    </script>
+</head>
+<body>
+
+<h2>Tools for Project: {{ project.name }}</h2>
+
+<hr>
+
+<h3>Available Tools</h3>
+
+<ul>
+    <li>
+        <a href="{{ url_for('canvas', project_id=project.id) }}">
+            🟢 Open Canvas Tool
+        </a>
+    </li>
+</ul>
+
+</body>
+</html>

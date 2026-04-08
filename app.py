@@ -64,24 +64,63 @@ def logout():
 
 
 # ------------------ DASHBOARD ------------------
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
-        
-        
-   # Projects owned by user
-        owned_projects = Project.query.filter_by(user_id=current_user.id).all()
+    owned_projects = Project.query.filter_by(user_id=current_user.id).all()
 
-# Projects where user is collaborator
-        collaborations = ProjectCollaborator.query.filter_by(user_id=current_user.id).all()
+    collaborations = ProjectCollaborator.query.filter_by(
+        user_id=current_user.id
+    ).all()
 
-        collab_projects = [Project.query.get(c.project_id) for c in collaborations]
+    collaborated_projects = [
+        Project.query.get(c.project_id) for c in collaborations
+    ]
 
-# Combine both
-        projects = owned_projects + collab_projects
-        return render_template("dashboard.html", projects=projects)
+    all_projects = list({p.id: p for p in owned_projects + collaborated_projects}.values())
 
+    return render_template("dashboard.html", projects=all_projects)
+@app.route('/project/<int:project_id>/tools')
+@login_required
+def tools(project_id):
+    project = Project.query.get(project_id)
 
+    if not project:
+        return "Project not found ❌"
+
+    # Access control
+    is_owner = project.user_id == current_user.id
+
+    collaborator = ProjectCollaborator.query.filter_by(
+        project_id=project_id,
+        user_id=current_user.id
+    ).first()
+
+    if not is_owner and not collaborator:
+        return "Access Denied 🚫"
+
+    return render_template("tools.html", project=project)
+@app.route('/project/<int:project_id>/canvas')
+@login_required
+def canvas(project_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    # Access check
+    is_owner = project.user_id == current_user.id
+
+    collaborator = ProjectCollaborator.query.filter_by(
+        project_id=project_id,
+        user_id=current_user.id
+    ).first()
+
+    if not is_owner and not collaborator:
+        return "Access Denied 🚫"
+
+    return render_template("canvas.html", project=project)
 # ------------------ CREATE PROJECT ------------------
 @app.route('/create_project', methods=['GET', 'POST'])
 @login_required
@@ -156,7 +195,7 @@ def project(project_id):
 
 
 # ------------------ DOWNLOAD ------------------
-@app.route('/download/<filename>')
+@app.route('/download/<int:filename>')
 @login_required
 def download_file(filename):
     return send_from_directory(
@@ -198,7 +237,7 @@ def add_collaborator(project_id):
         db.session.add(collab)
         db.session.commit()
 
-        return "Collaborator added successfully ✅"
+        return redirect(url_for('project', project_id=project_id))
 
     else:
        return "User not found ❌"

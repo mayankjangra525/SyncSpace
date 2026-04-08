@@ -42,4 +42,7 @@
         <li>No collaborators yet</li>
     {% endfor %}
 </ul>
+<a href="{{ url_for('tools', project_id=project.id) }}">
+    <button>Open Tools ⚙️</button>
+</a>
 {% endblock %}
