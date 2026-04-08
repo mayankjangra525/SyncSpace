@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-3xl mb-6">{{ project.name }}</h1>
+
+<div class="bg-dark-800 p-5 rounded-xl mb-6">
+    <form method="POST" enctype="multipart/form-data" class="flex gap-3">
+        <input type="file" name="file" class="bg-dark-700 p-2 rounded w-full">
+        <button class="bg-primary px-4 py-2 rounded">Upload</button>
+    </form>
+</div>
+
+<h2 class="text-xl mb-4">Files</h2>
+
+<div class="space-y-4">
+    {% for file in files %}
+    <div class="bg-dark-800 p-4 rounded-lg flex justify-between">
+        <div>
+            <p>{{ file.filename }}</p>
+            <p class="text-sm text-gray-400">v{{ file.version }}</p>
+        </div>
+
+        <a href="{{ url_for('download_file', filename=file.filename) }}">
+            <button class="bg-primary px-3 py-1 rounded">Download</button>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+<h3>Add Collaborator</h3>
+
+<form method="POST" action="{{ url_for('add_collaborator', project_id=project.id) }}">
+    <input type="text" name="username" placeholder="Enter username" required>
+    <button type="submit">Add</button>
+</form>
+<h3>👥 Collaborators</h3>
+
+<ul>
+    {% for collab in collaborators %}
+        <li>{{ collab.user.username }}</li>
+    {% else %}
+        <li>No collaborators yet</li>
+    {% endfor %}
+</ul>
+{% endblock %}

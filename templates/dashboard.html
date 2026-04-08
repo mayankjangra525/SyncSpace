@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="flex justify-between items-center mb-10">
+    <h1 class="text-3xl font-bold">Your Projects</h1>
+
+    <a href="{{ url_for('create_project') }}">
+        <button class="bg-primary px-4 py-2 rounded-lg">
+            + New Project
+        </button>
+    </a>
+</div>
+
+<div class="grid md:grid-cols-2 gap-6">
+    {% for project in projects %}
+    <div class="bg-dark-800 p-5 rounded-xl hover:scale-105 transition">
+        <h2 class="text-xl">{{ project.name }}</h2>
+        <a href="{{ url_for('project', project_id=project.id) }}" class="text-primary">
+            Open →
+        </a>
+    </div>
+    {% endfor %}
+</div>
+<h3>Your Projects</h3>
+
+{% for project in projects %}
+    <p>
+        {{ project.name }}
+        {% if project.user_id == current_user.id %}
+            (Owner)
+        {% else %}
+            (Collaborator)
+        {% endif %}
+    </p>
+{% endfor %}
+
+{% endblock %}
