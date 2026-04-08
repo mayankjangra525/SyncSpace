@@ -29,3 +29,7 @@ class ProjectCollaborator(db.Model):
     
     role = db.Column(db.String(50), default="collaborator")
     user = db.relationship('User')
+class Canvas(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, nullable=False)
+    data = db.Column(db.Text)

@@ -36,18 +36,46 @@ const ctx = canvas.getContext("2d");
 let drawing = false;
 
 canvas.addEventListener("mousedown", () => drawing = true);
-canvas.addEventListener("mouseup", () => drawing = false);
+canvas.addEventListener("mouseup", () => {
+    drawing = false;
+    saveCanvas();
+});
 
 canvas.addEventListener("mousemove", draw);
 
 function draw(e) {
     if (!drawing) return;
-
     ctx.fillRect(e.offsetX, e.offsetY, 2, 2);
 }
 
+// SAVE
+function saveCanvas() {
+    const data = canvas.toDataURL();
+
+    fetch("", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ data: data })
+    });
+}
+
+// LOAD
+window.onload = function() {
+    const savedData = "{{ canvas_data }}";
+
+    if (savedData && savedData !== "None") {
+        const img = new Image();
+        img.src = savedData;
+        img.onload = () => ctx.drawImage(img, 0, 0);
+    }
+}
+
+// CLEAR
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    saveCanvas();
 }
 </script>
 

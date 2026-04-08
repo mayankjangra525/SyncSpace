@@ -83,6 +83,7 @@ def dashboard():
     return render_template("dashboard.html", projects=all_projects)
 @app.route('/project/<int:project_id>/tools')
 @login_required
+#----------------------------------tool-------------------------------------
 def tools(project_id):
     project = Project.query.get(project_id)
 
@@ -101,7 +102,10 @@ def tools(project_id):
         return "Access Denied 🚫"
 
     return render_template("tools.html", project=project)
-@app.route('/project/<int:project_id>/canvas')
+#--------canva----------------------------------------------------------
+from models import Canvas
+
+@app.route('/project/<int:project_id>/canvas', methods=['GET', 'POST'])
 @login_required
 def canvas(project_id):
     project = Project.query.get(project_id)
@@ -111,7 +115,6 @@ def canvas(project_id):
 
     # Access check
     is_owner = project.user_id == current_user.id
-
     collaborator = ProjectCollaborator.query.filter_by(
         project_id=project_id,
         user_id=current_user.id
@@ -120,7 +123,26 @@ def canvas(project_id):
     if not is_owner and not collaborator:
         return "Access Denied 🚫"
 
-    return render_template("canvas.html", project=project)
+    # -------- SAVE --------
+    if request.method == "POST":
+        data = request.json.get("data")
+
+        canvas = Canvas.query.filter_by(project_id=project_id).first()
+
+        if canvas:
+            canvas.data = data
+        else:
+            canvas = Canvas(project_id=project_id, data=data)
+            db.session.add(canvas)
+
+        db.session.commit()
+        return {"status": "saved"}
+
+    # -------- LOAD --------
+    canvas = Canvas.query.filter_by(project_id=project_id).first()
+    canvas_data = canvas.data if canvas else None
+
+    return render_template("canvas.html", project=project, canvas_data=canvas_data)
 # ------------------ CREATE PROJECT ------------------
 @app.route('/create_project', methods=['GET', 'POST'])
 @login_required
