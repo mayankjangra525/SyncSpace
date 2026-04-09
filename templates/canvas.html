@@ -2,45 +2,67 @@
 <html>
 <head>
     <title>Canvas</title>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
     <style>
-.cursor {
-    position: absolute;
-    font-size: 12px;
-    color: red;
-    pointer-events: none;
-}
-</style>
-     <script src="https://cdn.tailwindcss.com"></script>
-     <script>tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            dark: {
-              900: "#080808",
-              800: "#111111",
-              700: "#171717",
-            },
-            primary: "#6366f1"
-          }
+        body {
+            font-family: Arial;
         }
-      }
-    }
-    </script>
+
+        canvas {
+            border: 1px solid black;
+            margin-top: 10px;
+        }
+
+        .tool-btn {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+        }
+
+        .tool-btn.active {
+            background: #007bff;
+            color: white;
+            border: 2px solid black;
+        }
+
+        .cursor {
+            position: absolute;
+            font-size: 12px;
+            color: red;
+            pointer-events: none;
+        }
+    </style>
 </head>
+
 <body>
-<h3>Online Users:</h3>
-<ul id="users"></ul>
+
 <h2>Canvas - {{ project.name }}</h2>
 
-<canvas id="board" width="800" height="500" style="border:1px solid black;"></canvas>
+<!-- 🟢 ONLINE USERS -->
+<h3>Online Users:</h3>
+<ul id="users"></ul>
 
-<br><br>
+<!-- 🧰 TOOLS -->
+<div>
+    <button class="tool-btn" onclick="setTool('pen', event)">Pen</button>
+    <button class="tool-btn" onclick="setTool('eraser', event)">Eraser</button>
 
+    <input type="color" id="colorPicker">
+    <input type="range" id="sizePicker" min="1" max="10" value="2">
+</div>
+
+<!-- 🎨 CANVAS -->
+<canvas id="board" width="800" height="500"></canvas>
+
+<br>
 <button onclick="clearCanvas()">Clear</button>
+
+<!-- 👀 CURSORS -->
 <div id="cursors"></div>
-
-<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-
 
 <script>
 const canvas = document.getElementById("board");
@@ -50,73 +72,101 @@ const socket = io();
 
 const projectId = "{{ project.id }}".toString();
 
-// Join room
-socket.emit('join', { project_id: projectId });
-
 let drawing = false;
 
+// TOOL STATE
+let currentTool = "pen";
+let currentColor = "#000000";
+let currentSize = 2;
+
+// 🧰 TOOL SELECT
+function setTool(tool, event) {
+    currentTool = tool;
+
+    document.querySelectorAll(".tool-btn").forEach(btn => {
+        btn.classList.remove("active");
+    });
+
+    event.target.classList.add("active");
+}
+
+// 🎨 COLOR
+document.getElementById("colorPicker").addEventListener("change", (e) => {
+    currentColor = e.target.value;
+});
+
+// 📏 SIZE
+document.getElementById("sizePicker").addEventListener("change", (e) => {
+    currentSize = e.target.value;
+});
+
+// 🖱️ MOUSE EVENTS
 canvas.addEventListener("mousedown", () => drawing = true);
+
 canvas.addEventListener("mouseup", () => {
     drawing = false;
     saveCanvas();
 });
 
+canvas.addEventListener("mouseleave", () => drawing = false);
+
 canvas.addEventListener("mousemove", draw);
 
+// ✏️ DRAW FUNCTION
 function draw(e) {
     if (!drawing) return;
 
     const x = e.offsetX;
     const y = e.offsetY;
 
-    ctx.fillRect(x, y, 2, 2);
+    drawOnCanvas(x, y, currentTool, currentColor, currentSize);
 
-    // SEND to others
     socket.emit('draw', {
         x: x,
         y: y,
+        tool: currentTool,
+        color: currentColor,
+        size: currentSize,
+        project_id: projectId
+    });
+
+    // 👀 CURSOR SEND
+    socket.emit('cursor_move', {
+        x: x,
+        y: y,
+        username: "{{ current_user.username }}",
         project_id: projectId
     });
 }
 
-// RECEIVE from others
-socket.on('draw', function(data) {
-    ctx.fillRect(data.x, data.y, 2, 2);
-});
-
-// SAVE (same as before)
-function saveCanvas() {
-    const data = canvas.toDataURL();
-
-    fetch("", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ data: data })
-    });
-}
-
-// LOAD (same as before)
-window.onload = function() {
-    const savedData = "{{ canvas_data }}";
-
-    if (savedData && savedData !== "None") {
-        const img = new Image();
-        img.src = savedData;
-        img.onload = () => ctx.drawImage(img, 0, 0);
+// 🧠 DRAW ENGINE
+function drawOnCanvas(x, y, tool, color, size) {
+    if (tool === "pen") {
+        ctx.fillStyle = color || "#000000";
+        ctx.fillRect(x, y, size || 2, size || 2);
+    } else if (tool === "eraser") {
+        ctx.clearRect(x, y, size || 10, size || 10);
     }
 }
 
-// CLEAR
-function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    saveCanvas();
-}
+// 📡 RECEIVE DRAW
+socket.on('draw', function(data) {
+    drawOnCanvas(
+        data.x,
+        data.y,
+        data.tool,
+        data.color,
+        data.size
+    );
+});
+
+// 👥 JOIN ROOM
 socket.emit('join', {
     project_id: projectId,
     username: "{{ current_user.username }}"
 });
+
+// 🟢 ONLINE USERS
 socket.on('update_users', function(users) {
     const usersList = document.getElementById("users");
     usersList.innerHTML = "";
@@ -127,19 +177,8 @@ socket.on('update_users', function(users) {
         usersList.appendChild(li);
     });
 });
-//track mouse
-canvas.addEventListener("mousemove", (e) => {
-    const x = e.offsetX;
-    const y = e.offsetY;
 
-    socket.emit('cursor_move', {
-        x: x,
-        y: y,
-        username: "{{ current_user.username }}",
-        project_id: projectId
-    });
-});
-//recive cousor 
+// 👀 CURSOR RECEIVE
 const cursors = {};
 
 socket.on('cursor_move', function(data) {
@@ -156,4 +195,39 @@ socket.on('cursor_move', function(data) {
     cursor.style.left = data.x + "px";
     cursor.style.top = data.y + "px";
 });
+
+// 💾 SAVE
+function saveCanvas() {
+    const data = canvas.toDataURL();
+
+    fetch("", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ data: data })
+    });
+}
+
+// 🔄 LOAD + DEFAULT TOOL
+window.onload = function() {
+    document.querySelector(".tool-btn").classList.add("active");
+
+    const savedData = "{{ canvas_data }}";
+
+    if (savedData && savedData !== "None") {
+        const img = new Image();
+        img.src = savedData;
+        img.onload = () => ctx.drawImage(img, 0, 0);
+    }
+}
+
+// 🧹 CLEAR
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    saveCanvas();
+}
 </script>
+
+</body>
+</html>
