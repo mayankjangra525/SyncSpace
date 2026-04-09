@@ -29,9 +29,18 @@
 
 <button onclick="clearCanvas()">Clear</button>
 
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
 <script>
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
+
+const socket = io();
+
+const projectId = "{{ project.id }}";
+
+// Join room
+socket.emit('join', { project_id: projectId });
 
 let drawing = false;
 
@@ -45,10 +54,26 @@ canvas.addEventListener("mousemove", draw);
 
 function draw(e) {
     if (!drawing) return;
-    ctx.fillRect(e.offsetX, e.offsetY, 2, 2);
+
+    const x = e.offsetX;
+    const y = e.offsetY;
+
+    ctx.fillRect(x, y, 2, 2);
+
+    // SEND to others
+    socket.emit('draw', {
+        x: x,
+        y: y,
+        project_id: projectId
+    });
 }
 
-// SAVE
+// RECEIVE from others
+socket.on('draw', function(data) {
+    ctx.fillRect(data.x, data.y, 2, 2);
+});
+
+// SAVE (same as before)
 function saveCanvas() {
     const data = canvas.toDataURL();
 
@@ -61,7 +86,7 @@ function saveCanvas() {
     });
 }
 
-// LOAD
+// LOAD (same as before)
 window.onload = function() {
     const savedData = "{{ canvas_data }}";
 
@@ -78,6 +103,3 @@ function clearCanvas() {
     saveCanvas();
 }
 </script>
-
-</body>
-</html>

@@ -3,10 +3,12 @@ from config import Config
 from models import db, User, Project, File, ProjectCollaborator
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_socketio import SocketIO, emit, join_room
 import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
+socketio = SocketIO(app)
 
 db.init_app(app)
 
@@ -265,10 +267,21 @@ def add_collaborator(project_id):
        return "User not found ❌"
 
     return redirect(url_for('project', project_id=project_id))
+#-------------------adding socket event ---------------------------------
+@socketio.on('join')
+def handle_join(data):
+    project_id = data['project_id']
+    join_room(project_id)
+
+
+@socketio.on('draw')
+def handle_draw(data):
+    project_id = data['project_id']
+    emit('draw', data, room=project_id, include_self=False)
 
 
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    socketio.run(app, debug=True)
