@@ -2,6 +2,14 @@
 <html>
 <head>
     <title>Canvas</title>
+    <style>
+.cursor {
+    position: absolute;
+    font-size: 12px;
+    color: red;
+    pointer-events: none;
+}
+</style>
      <script src="https://cdn.tailwindcss.com"></script>
      <script>tailwind.config = {
       theme: {
@@ -29,8 +37,10 @@
 <br><br>
 
 <button onclick="clearCanvas()">Clear</button>
+<div id="cursors"></div>
 
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
 
 <script>
 const canvas = document.getElementById("board");
@@ -116,5 +126,34 @@ socket.on('update_users', function(users) {
         li.textContent = user;
         usersList.appendChild(li);
     });
+});
+//track mouse
+canvas.addEventListener("mousemove", (e) => {
+    const x = e.offsetX;
+    const y = e.offsetY;
+
+    socket.emit('cursor_move', {
+        x: x,
+        y: y,
+        username: "{{ current_user.username }}",
+        project_id: projectId
+    });
+});
+//recive cousor 
+const cursors = {};
+
+socket.on('cursor_move', function(data) {
+    let cursor = cursors[data.username];
+
+    if (!cursor) {
+        cursor = document.createElement("div");
+        cursor.className = "cursor";
+        cursor.innerText = data.username;
+        document.body.appendChild(cursor);
+        cursors[data.username] = cursor;
+    }
+
+    cursor.style.left = data.x + "px";
+    cursor.style.top = data.y + "px";
 });
 </script>

@@ -301,6 +301,11 @@ def handle_disconnect():
 def handle_draw(data):
     project_id = str(data['project_id'])
     emit('draw', data, room=project_id, include_self=False)
+    #-------------curroser mover---------
+@socketio.on('cursor_move')
+def handle_cursor(data):
+    project_id = str(data['project_id'])
+    emit('cursor_move', data, room=project_id, include_self=False)
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
