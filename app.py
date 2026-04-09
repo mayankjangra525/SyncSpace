@@ -7,6 +7,7 @@ from flask_socketio import SocketIO, emit, join_room
 import os
 
 app = Flask(__name__)
+online_users = {}   # { project_id: { socket_id: username } }
 app.config.from_object(Config)
 socketio = SocketIO(app)
 
@@ -270,16 +271,36 @@ def add_collaborator(project_id):
 #-------------------adding socket event ---------------------------------
 @socketio.on('join')
 def handle_join(data):
-    project_id = data['project_id']
+    project_id = str(data['project_id'])
+    username = data['username']
+    sid = request.sid   # 🔥 UNIQUE SOCKET ID
+
     join_room(project_id)
 
+    if project_id not in online_users:
+        online_users[project_id] = {}
 
+    online_users[project_id][sid] = username
+
+    # Send updated list
+    users = list(online_users[project_id].values())
+    emit('update_users', users, room=project_id)
+    #--------disconnect---------
+@socketio.on('disconnect')
+def handle_disconnect():
+    sid = request.sid
+
+    for project_id in list(online_users.keys()):
+        if sid in online_users[project_id]:
+            del online_users[project_id][sid]
+
+            users = list(online_users[project_id].values())
+            emit('update_users', users, room=project_id)
+    #-----------fix real time draw-----
 @socketio.on('draw')
 def handle_draw(data):
-    project_id = data['project_id']
+    project_id = str(data['project_id'])
     emit('draw', data, room=project_id, include_self=False)
-
-
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():

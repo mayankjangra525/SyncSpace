@@ -20,7 +20,8 @@
     </script>
 </head>
 <body>
-
+<h3>Online Users:</h3>
+<ul id="users"></ul>
 <h2>Canvas - {{ project.name }}</h2>
 
 <canvas id="board" width="800" height="500" style="border:1px solid black;"></canvas>
@@ -37,7 +38,7 @@ const ctx = canvas.getContext("2d");
 
 const socket = io();
 
-const projectId = "{{ project.id }}";
+const projectId = "{{ project.id }}".toString();
 
 // Join room
 socket.emit('join', { project_id: projectId });
@@ -102,4 +103,18 @@ function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     saveCanvas();
 }
+socket.emit('join', {
+    project_id: projectId,
+    username: "{{ current_user.username }}"
+});
+socket.on('update_users', function(users) {
+    const usersList = document.getElementById("users");
+    usersList.innerHTML = "";
+
+    users.forEach(user => {
+        const li = document.createElement("li");
+        li.textContent = user;
+        usersList.appendChild(li);
+    });
+});
 </script>
