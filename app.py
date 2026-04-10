@@ -326,6 +326,15 @@ def chat(project_id):
             return "Access denied ❌"
 
     return render_template("chat.html", project=project)
+# ------------------ CHAT SYSTEM ------------------
+@socketio.on('send_message')
+def handle_send_message(data):
+    project_id = str(data['project_id'])
+
+    emit('receive_message', {
+        'message': data['message'],
+        'username': data['username']
+    }, room=project_id)
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
