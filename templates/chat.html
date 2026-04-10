@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>💬 Chat - {{ project.name }}</h2>
+
+<div id="chat-box" style="height:400px; border:1px solid #ccc; overflow-y:scroll;"></div>
+
+<input type="text" id="chat-input" placeholder="Type message...">
+<button onclick="sendMessage()">Send</button>
+
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+<script>
+const socket = io();
+const projectId = "{{ project.id }}";
+
+// join room
+socket.emit('join', {
+    project_id: projectId,
+    username: "{{ current_user.username }}"
+});
+
+// send
+function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const message = input.value;
+
+    if (!message) return;
+
+    socket.emit('send_message', {
+        message: message,
+        username: "{{ current_user.username }}",
+        project_id: projectId
+    });
+
+    input.value = "";
+}
+
+// receive
+socket.on('receive_message', function(data) {
+    const box = document.getElementById("chat-box");
+
+    const msg = document.createElement("div");
+    msg.innerHTML = "<b>" + data.username + ":</b> " + data.message;
+
+    box.appendChild(msg);
+    box.scrollTop = box.scrollHeight;
+});
+
+// ENTER KEY
+document.getElementById("chat-input").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        sendMessage();
+    }
+});
+</script>
+
+{% endblock %}

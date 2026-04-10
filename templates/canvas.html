@@ -12,7 +12,6 @@
 
         canvas {
             border: 1px solid black;
-            margin-top: 10px;
         }
 
         .tool-btn {
@@ -55,11 +54,27 @@
     <input type="range" id="sizePicker" min="1" max="10" value="2">
 </div>
 
-<!-- 🎨 CANVAS -->
-<canvas id="board" width="800" height="500"></canvas>
+<!-- 🎯 MAIN LAYOUT -->
+<div style="display:flex; gap:20px; margin-top:10px;">
 
-<br>
-<button onclick="clearCanvas()">Clear</button>
+    <!-- 🎨 CANVAS -->
+    <div>
+        <canvas id="board" width="800" height="500"></canvas>
+        <br>
+        <button onclick="clearCanvas()">Clear</button>
+    </div>
+
+    <!-- 💬 CHAT -->
+    <div style="width:250px;">
+        <h4>💬 Chat</h4>
+
+        <div id="chat-box" style="height:300px; overflow-y:scroll; border:1px solid #ccc;"></div>
+
+        <input type="text" id="chat-input" placeholder="Type message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+</div>
 
 <!-- 👀 CURSORS -->
 <div id="cursors"></div>
@@ -67,11 +82,11 @@
 <script>
 let lastX = 0;
 let lastY = 0;
+
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
 
 const socket = io();
-
 const projectId = "{{ project.id }}".toString();
 
 let drawing = false;
@@ -115,20 +130,8 @@ canvas.addEventListener("mouseup", () => {
 });
 
 canvas.addEventListener("mouseleave", () => drawing = false);
-canvas.addEventListener("mousedown", (e) => {
-    drawing = true;
-    lastX = e.offsetX;
-    lastY = e.offsetY;
-});
-
-canvas.addEventListener("mouseup", () => {
-    drawing = false;
-    saveCanvas();
-});
-
-canvas.addEventListener("mouseleave", () => drawing = false);
-
 canvas.addEventListener("mousemove", draw);
+
 // ✏️ DRAW FUNCTION
 function draw(e) {
     if (!drawing) return;
@@ -160,6 +163,7 @@ function draw(e) {
         project_id: projectId
     });
 }
+
 // 🧠 DRAW ENGINE
 function drawLine(x0, y0, x1, y1, tool, color, size) {
     ctx.beginPath();
@@ -172,12 +176,13 @@ function drawLine(x0, y0, x1, y1, tool, color, size) {
     if (tool === "pen") {
         ctx.strokeStyle = color || "#000";
     } else if (tool === "eraser") {
-        ctx.strokeStyle = "#FFFFFF"; // match canvas bg
+        ctx.strokeStyle = "#FFFFFF";
     }
 
     ctx.stroke();
     ctx.closePath();
 }
+
 // 📡 RECEIVE DRAW
 socket.on('draw', function(data) {
     drawLine(
@@ -227,6 +232,40 @@ socket.on('cursor_move', function(data) {
     cursor.style.top = data.y + "px";
 });
 
+// 💬 SEND MESSAGE
+function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const message = input.value;
+
+    if (!message) return;
+
+    socket.emit('send_message', {
+        message: message,
+        username: "{{ current_user.username }}",
+        project_id: projectId
+    });
+
+    input.value = "";
+}
+
+// 📩 RECEIVE MESSAGE
+socket.on('receive_message', function(data) {
+    const box = document.getElementById("chat-box");
+
+    const msg = document.createElement("div");
+    msg.innerHTML = "<b>" + data.username + ":</b> " + data.message;
+
+    box.appendChild(msg);
+    box.scrollTop = box.scrollHeight;
+});
+
+// ⌨️ ENTER KEY
+document.getElementById("chat-input").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        sendMessage();
+    }
+});
+
 // 💾 SAVE
 function saveCanvas() {
     const data = canvas.toDataURL();
@@ -240,7 +279,7 @@ function saveCanvas() {
     });
 }
 
-// 🔄 LOAD + DEFAULT TOOL
+// 🔄 LOAD
 window.onload = function() {
     document.querySelector(".tool-btn").classList.add("active");
 
@@ -251,7 +290,7 @@ window.onload = function() {
         img.src = savedData;
         img.onload = () => ctx.drawImage(img, 0, 0);
     }
-}
+};
 
 // 🧹 CLEAR
 function clearCanvas() {

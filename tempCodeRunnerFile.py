@@ -126,8 +126,6 @@ def canvas(project_id):
     if not is_owner and not collaborator:
         return "Access Denied 🚫"
 
-
-
     # -------- SAVE --------
     if request.method == "POST":
         data = request.json.get("data")
@@ -148,7 +146,6 @@ def canvas(project_id):
     canvas_data = canvas.data if canvas else None
 
     return render_template("canvas.html", project=project, canvas_data=canvas_data)
-
 # ------------------ CREATE PROJECT ------------------
 @app.route('/create_project', methods=['GET', 'POST'])
 @login_required

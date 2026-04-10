@@ -1,39 +1,71 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Tools</title>
-     <script src="https://cdn.tailwindcss.com"></script>
-    <script> tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            dark: {
-              900: "#080808",
-              800: "#111111",
-              700: "#171717",
-            },
-            primary: "#6366f1"
-          }
-        }
-      }
-    }
-    </script>
-</head>
-<body>
+{% extends "base.html" %}
 
-<h2>Tools for Project: {{ project.name }}</h2>
+{% block content %}
 
-<hr>
+<!-- 🔙 BACK -->
+<a href="{{ url_for('project', project_id=project.id) }}" 
+   class="text-gray-400 hover:text-white">
+   ← Back to Project
+</a>
 
-<h3>Available Tools</h3>
+<!-- 🧰 HEADER -->
+<div class="mt-4 mb-8">
+    <h2 class="text-3xl font-bold">
+        Tools for "{{ project.name }}"
+    </h2>
+    <p class="text-gray-400 text-sm mt-1">
+        Select a tool to start working on this project
+    </p>
+</div>
 
-<ul>
-    <li>
-        <a href="{{ url_for('canvas', project_id=project.id) }}">
-            🟢 Open Canvas Tool
+<!-- 🧰 TOOLS SECTION -->
+<div class="grid md:grid-cols-2 gap-6">
+
+    <!-- 🎨 CANVAS TOOL -->
+    <div class="bg-dark-800 p-6 rounded-xl shadow hover:scale-105 transition">
+        
+        <h3 class="text-xl mb-2">🎨 Canvas</h3>
+
+        <p class="text-gray-400 text-sm mb-4">
+            Draw and collaborate in real-time.
+        </p>
+
+        <a href="{{ url_for('canvas', project_id=project.id) }}"
+           class="bg-primary px-4 py-2 rounded-lg inline-block hover:opacity-90">
+            Open Canvas
         </a>
-    </li>
-</ul>
+    </div>
 
-</body>
-</html>
+    <!-- 💬 CHAT TOOL -->
+    <div class="bg-dark-800 p-6 rounded-xl shadow hover:scale-105 transition">
+        
+        <h3 class="text-xl mb-2">💬 Chat</h3>
+
+        <p class="text-gray-400 text-sm mb-4">
+            Communicate with your team instantly.
+        </p>
+
+        <a href="{{ url_for('chat', project_id=project.id) }}"
+           class="bg-primary px-4 py-2 rounded-lg inline-block hover:opacity-90">
+            Open Chat
+        </a>
+    </div>
+
+    <!-- 👥 COLLAB TOOL -->
+    <div class="bg-dark-800 p-6 rounded-xl shadow hover:scale-105 transition">
+        
+        <h3 class="text-xl mb-2">👥 Collaborate</h3>
+
+        <p class="text-gray-400 text-sm mb-4">
+            Manage project members and permissions.
+        </p>
+
+        <a href="#"
+           class="bg-primary px-4 py-2 rounded-lg inline-block hover:opacity-90">
+            Manage
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}
