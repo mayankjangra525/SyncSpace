@@ -65,6 +65,8 @@
 <div id="cursors"></div>
 
 <script>
+let lastX = 0;
+let lastY = 0;
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
 
@@ -101,7 +103,23 @@ document.getElementById("sizePicker").addEventListener("change", (e) => {
 });
 
 // 🖱️ MOUSE EVENTS
-canvas.addEventListener("mousedown", () => drawing = true);
+canvas.addEventListener("mousedown", (e) => {
+    drawing = true;
+    lastX = e.offsetX;
+    lastY = e.offsetY;
+});
+
+canvas.addEventListener("mouseup", () => {
+    drawing = false;
+    saveCanvas();
+});
+
+canvas.addEventListener("mouseleave", () => drawing = false);
+canvas.addEventListener("mousedown", (e) => {
+    drawing = true;
+    lastX = e.offsetX;
+    lastY = e.offsetY;
+});
 
 canvas.addEventListener("mouseup", () => {
     drawing = false;
@@ -111,7 +129,6 @@ canvas.addEventListener("mouseup", () => {
 canvas.addEventListener("mouseleave", () => drawing = false);
 
 canvas.addEventListener("mousemove", draw);
-
 // ✏️ DRAW FUNCTION
 function draw(e) {
     if (!drawing) return;
@@ -119,18 +136,23 @@ function draw(e) {
     const x = e.offsetX;
     const y = e.offsetY;
 
-    drawOnCanvas(x, y, currentTool, currentColor, currentSize);
+    drawLine(lastX, lastY, x, y, currentTool, currentColor, currentSize);
 
     socket.emit('draw', {
-        x: x,
-        y: y,
+        x0: lastX,
+        y0: lastY,
+        x1: x,
+        y1: y,
         tool: currentTool,
         color: currentColor,
         size: currentSize,
         project_id: projectId
     });
 
-    // 👀 CURSOR SEND
+    lastX = x;
+    lastY = y;
+
+    // cursor tracking
     socket.emit('cursor_move', {
         x: x,
         y: y,
@@ -138,22 +160,31 @@ function draw(e) {
         project_id: projectId
     });
 }
-
 // 🧠 DRAW ENGINE
-function drawOnCanvas(x, y, tool, color, size) {
-    if (tool === "pen") {
-        ctx.fillStyle = color || "#000000";
-        ctx.fillRect(x, y, size || 2, size || 2);
-    } else if (tool === "eraser") {
-        ctx.clearRect(x, y, size || 10, size || 10);
-    }
-}
+function drawLine(x0, y0, x1, y1, tool, color, size) {
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
 
+    ctx.lineWidth = size || 2;
+    ctx.lineCap = "round";
+
+    if (tool === "pen") {
+        ctx.strokeStyle = color || "#000";
+    } else if (tool === "eraser") {
+        ctx.strokeStyle = "#FFFFFF"; // match canvas bg
+    }
+
+    ctx.stroke();
+    ctx.closePath();
+}
 // 📡 RECEIVE DRAW
 socket.on('draw', function(data) {
-    drawOnCanvas(
-        data.x,
-        data.y,
+    drawLine(
+        data.x0,
+        data.y0,
+        data.x1,
+        data.y1,
         data.tool,
         data.color,
         data.size
