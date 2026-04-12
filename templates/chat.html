@@ -9,16 +9,34 @@
 <input type="text" id="chat-input" placeholder="Type message...">
 <p id="typing-indicator" style="color: gray;"></p>
 <button onclick="sendMessage()">Send</button>
-<div id="chat-box">
+<div id="chat-box" class="space-y-2">
 
-    {% for msg in messages %}
-    <div class="mb-2">
-        <b>{{ msg.username }}</b>: {{ msg.content }}
-        <div style="font-size: 10px; color: gray;">
-            {{ msg.timestamp.strftime("%I:%M %p") }}
+{% for msg in messages %}
+
+    {% if msg.username == current_user.username %}
+        <!-- RIGHT (YOU) -->
+        <div class="flex justify-end">
+            <div class="bg-primary text-white p-2 rounded-lg max-w-xs">
+                <div>{{ msg.content }}</div>
+                <div class="text-xs text-gray-200 text-right">
+                    {{ msg.timestamp.strftime("%I:%M %p") }}
+                </div>
+            </div>
         </div>
-    </div>
-    {% endfor %}
+    {% else %}
+        <!-- LEFT (OTHERS) -->
+        <div class="flex justify-start">
+            <div class="bg-dark-800 p-2 rounded-lg max-w-xs">
+                <div><b>{{ msg.username }}</b></div>
+                <div>{{ msg.content }}</div>
+                <div class="text-xs text-gray-400">
+                    {{ msg.timestamp.strftime("%I:%M %p") }}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+{% endfor %}
 
 </div>
 
@@ -54,17 +72,35 @@ function sendMessage() {
 socket.on('receive_message', function(data) {
     const box = document.getElementById("chat-box");
 
+    const isMe = data.username === "{{ current_user.username }}";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = isMe ? "flex justify-end" : "flex justify-start";
+
     const msg = document.createElement("div");
-    msg.classList.add("mb-2");
 
-    msg.innerHTML = `
-        <b>${data.username}</b>: ${data.message}
-        <div style="font-size:10px; color:gray;">
-            ${data.time}
-        </div>
-    `;
+    if (isMe) {
+        msg.className = "bg-primary text-white p-2 rounded-lg max-w-xs";
+        msg.innerHTML = `
+            <div>${data.message}</div>
+            <div class="text-xs text-gray-200 text-right">
+                ${data.time}
+            </div>
+        `;
+    } else {
+        msg.className = "bg-dark-800 p-2 rounded-lg max-w-xs";
+        msg.innerHTML = `
+            <div><b>${data.username}</b></div>
+            <div>${data.message}</div>
+            <div class="text-xs text-gray-400">
+                ${data.time}
+            </div>
+        `;
+    }
 
-    box.appendChild(msg);
+    wrapper.appendChild(msg);
+    box.appendChild(wrapper);
+
     box.scrollTop = box.scrollHeight;
 });
 
