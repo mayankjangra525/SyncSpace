@@ -315,26 +315,30 @@ def handle_cursor(data):
 def chat(project_id):
     project = Project.query.get(project_id)
 
-    # Access control (owner or collaborator)
-    if project.user_id != current_user.id:
-        collab = ProjectCollaborator.query.filter_by(
-            project_id=project_id,
-            user_id=current_user.id
-        ).first()
+    messages = Message.query.filter_by(project_id=project_id).all()
 
-        if not collab:
-            return "Access denied ❌"
-
-    return render_template("chat.html", project=project)
+    return render_template("chat.html", project=project, messages=messages)
 # ------------------ CHAT SYSTEM ------------------
+from models import Message
+
 @socketio.on('send_message')
 def handle_send_message(data):
-    project_id = str(data['project_id'])
+    project_id = data['project_id']
 
+    # 💾 SAVE TO DB
+    msg = Message(
+        content=data['message'],
+        username=data['username'],
+        project_id=project_id
+    )
+    db.session.add(msg)
+    db.session.commit()
+
+    # 📡 SEND TO USERS
     emit('receive_message', {
         'message': data['message'],
         'username': data['username']
-    }, room=project_id)
+    }, room=str(project_id))
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
