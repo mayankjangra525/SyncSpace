@@ -223,7 +223,7 @@ def project(project_id):
 
 
 # ------------------ DOWNLOAD ------------------
-@app.route('/download/<int:filename>')
+@app.route('/download/<filename>')
 @login_required
 def download_file(filename):
     return send_from_directory(
@@ -326,9 +326,10 @@ def handle_send_message(data):
     project_id = data['project_id']
 
     msg = Message(
-        content=data['message'],
+        content=data.get('message'),
         username=data['username'],
-        project_id=project_id
+        project_id=project_id,
+        file=data.get('file')
     )
     db.session.add(msg)
     db.session.commit()
@@ -336,7 +337,8 @@ def handle_send_message(data):
     emit('receive_message', {
         'message': msg.content,
         'username': msg.username,
-        'time': msg.timestamp.strftime("%I:%M %p")
+        'time': msg.timestamp.strftime("%I:%M %p"),
+        'file': msg.file
     }, room=str(project_id))
     #---------------------Adding typing indicitor-----------------
 @socketio.on('typing')
@@ -355,6 +357,17 @@ def handle_stop_typing(data):
     emit('hide_typing', {
         'username': data['username']
     }, room=project_id)
+#-------------------Adding route for file upload --------------
+@app.route('/upload_chat_file/<int:project_id>', methods=['POST'])
+@login_required
+def upload_chat_file(project_id):
+    file = request.files['file']
+
+    filename = file.filename
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    return {"filename": filename}
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():

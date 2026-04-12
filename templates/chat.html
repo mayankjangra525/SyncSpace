@@ -10,6 +10,7 @@
 
 <input type="text" id="chat-input" placeholder="Type message...">
 <p id="typing-indicator" style="color: gray;"></p>
+<input type="file" id="file-input">
 <button onclick="sendMessage()">Send</button>
 <div id="chat-box" class="space-y-2">
 
@@ -57,19 +58,41 @@ socket.emit('join', {
 // send
 function sendMessage() {
     const input = document.getElementById("chat-input");
+    const fileInput = document.getElementById("file-input");
+
     const message = input.value;
+    const file = fileInput.files[0];
 
-    if (!message) return;
+    if (!message && !file) return;
 
-    socket.emit('send_message', {
-        message: message,
-        username: "{{ current_user.username }}",
-        project_id: projectId
-    });
+    if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/upload_chat_file/{{ project.id }}", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            socket.emit('send_message', {
+                message: message,
+                file: data.filename,
+                username: "{{ current_user.username }}",
+                project_id: projectId
+            });
+        });
+    } else {
+        socket.emit('send_message', {
+            message: message,
+            username: "{{ current_user.username }}",
+            project_id: projectId
+        });
+    }
 
     input.value = "";
+    fileInput.value = "";
 }
-
 // receive
 socket.on('receive_message', function(data) {
     const box = document.getElementById("chat-box");
@@ -83,22 +106,36 @@ socket.on('receive_message', function(data) {
 
     if (isMe) {
         msg.className = "bg-primary text-white p-2 rounded-lg max-w-xs";
-        msg.innerHTML = `
-            <div>${data.message}</div>
-            <div class="text-xs text-gray-200 text-right">
-                ${data.time}
-            </div>
-        `;
     } else {
         msg.className = "bg-dark-800 p-2 rounded-lg max-w-xs";
-        msg.innerHTML = `
-            <div><b>${data.username}</b></div>
-            <div>${data.message}</div>
-            <div class="text-xs text-gray-400">
-                ${data.time}
+    }
+
+    let contentHTML = "";
+
+    // 📝 TEXT
+    if (data.message) {
+        contentHTML += `<div>${data.message}</div>`;
+    }
+
+    // 📎 FILE
+    if (data.file) {
+        contentHTML += `
+            <div>
+                <a href="/download/${data.file}" target="_blank">
+                    📎 ${data.file}
+                </a>
             </div>
         `;
     }
+
+    // ⏰ TIME
+    contentHTML += `
+        <div class="text-xs text-gray-400 text-right">
+            ${data.time}
+        </div>
+    `;
+
+    msg.innerHTML = contentHTML;
 
     wrapper.appendChild(msg);
     box.appendChild(wrapper);
@@ -154,6 +191,15 @@ socket.on('update_users', function(users) {
         list.appendChild(li);
     });
 });
+if (data.file) {
+    msg.innerHTML += `
+        <div>
+            <a href="/download/${data.file}" target="_blank">
+                📎 ${data.file}
+            </a>
+        </div>
+    `;
+}
 </script>
 
 {% endblock %}
