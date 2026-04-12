@@ -3,6 +3,8 @@
 {% block content %}
 
 <h2>💬 Chat - {{ project.name }}</h2>
+<h3>🟢 Online Users</h3>
+<ul id="users" class="mb-3 text-sm"></ul>
 
 <div id="chat-box" style="height:400px; border:1px solid #ccc; overflow-y:scroll;"></div>
 
@@ -139,6 +141,19 @@ socket.on('show_typing', function(data) {
 socket.on('hide_typing', function(data) {
     document.getElementById("typing-indicator").innerText = "";
 }); 
+//handel users in js 
+socket.on('update_users', function(users) {
+    const list = document.getElementById("users");
+    list.innerHTML = "";
+
+    users.forEach(user => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+    <span style="color:lime;">●</span> ${user}
+`;
+        list.appendChild(li);
+    });
+});
 </script>
 
 {% endblock %}
