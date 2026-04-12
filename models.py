@@ -33,8 +33,11 @@ class Canvas(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, nullable=False)
     data = db.Column(db.Text)
+from datetime import datetime
+
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(500))
     username = db.Column(db.String(100))
     project_id = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)

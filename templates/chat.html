@@ -12,9 +12,12 @@
 <div id="chat-box">
 
     {% for msg in messages %}
-        <div>
-            <b>{{ msg.username }}:</b> {{ msg.content }}
+    <div class="mb-2">
+        <b>{{ msg.username }}</b>: {{ msg.content }}
+        <div style="font-size: 10px; color: gray;">
+            {{ msg.timestamp.strftime("%I:%M %p") }}
         </div>
+    </div>
     {% endfor %}
 
 </div>
@@ -52,7 +55,14 @@ socket.on('receive_message', function(data) {
     const box = document.getElementById("chat-box");
 
     const msg = document.createElement("div");
-    msg.innerHTML = "<b>" + data.username + ":</b> " + data.message;
+    msg.classList.add("mb-2");
+
+    msg.innerHTML = `
+        <b>${data.username}</b>: ${data.message}
+        <div style="font-size:10px; color:gray;">
+            ${data.time}
+        </div>
+    `;
 
     box.appendChild(msg);
     box.scrollTop = box.scrollHeight;

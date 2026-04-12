@@ -325,7 +325,6 @@ from models import Message
 def handle_send_message(data):
     project_id = data['project_id']
 
-    # 💾 SAVE TO DB
     msg = Message(
         content=data['message'],
         username=data['username'],
@@ -334,10 +333,10 @@ def handle_send_message(data):
     db.session.add(msg)
     db.session.commit()
 
-    # 📡 SEND TO USERS
     emit('receive_message', {
-        'message': data['message'],
-        'username': data['username']
+        'message': msg.content,
+        'username': msg.username,
+        'time': msg.timestamp.strftime("%I:%M %p")
     }, room=str(project_id))
     #---------------------Adding typing indicitor-----------------
 @socketio.on('typing')

@@ -2,3 +2,8 @@ body {
     font-family: Arial;
     margin: 20px;
 }
+#chat-box div {
+    background: #1f1f1f;
+    padding: 8px;
+    border-radius: 8px;
+}
