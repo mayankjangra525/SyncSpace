@@ -11,6 +11,9 @@
 <input type="text" id="chat-input" placeholder="Type message...">
 <p id="typing-indicator" style="color: gray;"></p>
 <input type="file" id="file-input">
+<div id="drop-area" style="border:2px dashed gray; padding:10px; margin-bottom:10px;">
+    Drag & Drop File Here
+</div>
 <button onclick="sendMessage()">Send</button>
 <div id="chat-box" class="space-y-2">
 
@@ -192,14 +195,63 @@ socket.on('update_users', function(users) {
     });
 });
 if (data.file) {
-    msg.innerHTML += `
-        <div>
-            <a href="/download/${data.file}" target="_blank">
-                📎 ${data.file}
-            </a>
-        </div>
-    `;
+    const file = data.file.toLowerCase();
+
+    // 🖼️ IMAGE CHECK
+    if (file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".gif")) {
+        contentHTML += `
+            <div>
+                <img src="/download/${data.file}" style="max-width:200px; border-radius:8px;">
+            </div>
+        `;
+    } else {
+        // 📎 NORMAL FILE
+        contentHTML += `
+            <div>
+                <a href="/download/${data.file}" target="_blank">
+                    📎 ${data.file}
+                </a>
+            </div>
+        `;
+    }
 }
+//-----------logic for drag and dorp --------
+const dropArea = document.getElementById("drop-area");
+
+dropArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropArea.style.background = "#222";
+});
+
+dropArea.addEventListener("dragleave", () => {
+    dropArea.style.background = "";
+});
+
+dropArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+
+    const file = e.dataTransfer.files[0];
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/upload_chat_file/{{ project.id }}", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        socket.emit('send_message', {
+            file: data.filename,
+            username: "{{ current_user.username }}",
+            project_id: projectId
+        });
+    });
+
+    dropArea.style.background = "";
+});
 </script>
 
 {% endblock %}
