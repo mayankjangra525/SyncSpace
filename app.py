@@ -318,7 +318,7 @@ def chat(project_id):
     messages = Message.query.filter_by(project_id=project_id).all()
 
     return render_template("chat.html", project=project, messages=messages)
-# ------------------ CHAT SYSTEM ------------------
+         # ------------------ CHAT SYSTEM ------------------
 from models import Message
 
 @socketio.on('send_message')
@@ -339,6 +339,23 @@ def handle_send_message(data):
         'message': data['message'],
         'username': data['username']
     }, room=str(project_id))
+    #---------------------Adding typing indicitor-----------------
+@socketio.on('typing')
+def handle_typing(data):
+    project_id = str(data['project_id'])
+
+    emit('show_typing', {
+        'username': data['username']
+    }, room=project_id, include_self=False)
+
+
+@socketio.on('stop_typing')
+def handle_stop_typing(data):
+    project_id = str(data['project_id'])
+
+    emit('hide_typing', {
+        'username': data['username']
+    }, room=project_id)
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():

@@ -7,6 +7,7 @@
 <div id="chat-box" style="height:400px; border:1px solid #ccc; overflow-y:scroll;"></div>
 
 <input type="text" id="chat-input" placeholder="Type message...">
+<p id="typing-indicator" style="color: gray;"></p>
 <button onclick="sendMessage()">Send</button>
 <div id="chat-box">
 
@@ -63,6 +64,35 @@ document.getElementById("chat-input").addEventListener("keypress", function(e) {
         sendMessage();
     }
 });
+//Decet Who is typing 
+let typingTimeout;
+
+const input = document.getElementById("chat-input");
+
+input.addEventListener("input", () => {
+    socket.emit('typing', {
+        username: "{{ current_user.username }}",
+        project_id: projectId
+    });
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+        socket.emit('stop_typing', {
+            username: "{{ current_user.username }}",
+            project_id: projectId
+        });
+    }, 1000);
+});
+//////show hide chat indicitor 
+socket.on('show_typing', function(data) {
+    document.getElementById("typing-indicator").innerText =
+        data.username + " is typing...";
+});
+
+socket.on('hide_typing', function(data) {
+    document.getElementById("typing-indicator").innerText = "";
+}); 
 </script>
 
 {% endblock %}
