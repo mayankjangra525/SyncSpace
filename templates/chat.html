@@ -52,13 +52,17 @@
 const socket = io();
 const projectId = "{{ project.id }}";
 
-// join room
+// 🔥 BLOCK DEFAULT DRAG BEHAVIOR
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
+
+// 🔗 JOIN ROOM
 socket.emit('join', {
     project_id: projectId,
     username: "{{ current_user.username }}"
 });
 
-// send
+// ================= SEND MESSAGE =================
 function sendMessage() {
     const input = document.getElementById("chat-input");
     const fileInput = document.getElementById("file-input");
@@ -96,7 +100,8 @@ function sendMessage() {
     input.value = "";
     fileInput.value = "";
 }
-// receive
+
+// ================= RECEIVE MESSAGE =================
 socket.on('receive_message', function(data) {
     const box = document.getElementById("chat-box");
 
@@ -120,15 +125,30 @@ socket.on('receive_message', function(data) {
         contentHTML += `<div>${data.message}</div>`;
     }
 
-    // 📎 FILE
+    // 📎 FILE / IMAGE
     if (data.file) {
-        contentHTML += `
-            <div>
-                <a href="/download/${data.file}" target="_blank">
-                    📎 ${data.file}
-                </a>
-            </div>
-        `;
+        const file = data.file.toLowerCase();
+
+        if (
+            file.endsWith(".png") ||
+            file.endsWith(".jpg") ||
+            file.endsWith(".jpeg") ||
+            file.endsWith(".gif")
+        ) {
+            contentHTML += `
+                <div>
+                    <img src="/download/${data.file}" style="max-width:200px; border-radius:8px;">
+                </div>
+            `;
+        } else {
+            contentHTML += `
+                <div>
+                    <a href="/download/${data.file}" target="_blank">
+                        📎 ${data.file}
+                    </a>
+                </div>
+            `;
+        }
     }
 
     // ⏰ TIME
@@ -146,15 +166,15 @@ socket.on('receive_message', function(data) {
     box.scrollTop = box.scrollHeight;
 });
 
-// ENTER KEY
+// ================= ENTER KEY =================
 document.getElementById("chat-input").addEventListener("keypress", function(e) {
     if (e.key === "Enter") {
         sendMessage();
     }
 });
-//Decet Who is typing 
-let typingTimeout;
 
+// ================= TYPING =================
+let typingTimeout;
 const input = document.getElementById("chat-input");
 
 input.addEventListener("input", () => {
@@ -172,50 +192,30 @@ input.addEventListener("input", () => {
         });
     }, 1000);
 });
-//////show hide chat indicitor 
+
+// SHOW / HIDE TYPING
 socket.on('show_typing', function(data) {
     document.getElementById("typing-indicator").innerText =
         data.username + " is typing...";
 });
 
-socket.on('hide_typing', function(data) {
+socket.on('hide_typing', function() {
     document.getElementById("typing-indicator").innerText = "";
-}); 
-//handel users in js 
+});
+
+// ================= ONLINE USERS =================
 socket.on('update_users', function(users) {
     const list = document.getElementById("users");
     list.innerHTML = "";
 
     users.forEach(user => {
         const li = document.createElement("li");
-        li.innerHTML = `
-    <span style="color:lime;">●</span> ${user}
-`;
+        li.innerHTML = `<span style="color:lime;">●</span> ${user}`;
         list.appendChild(li);
     });
 });
-if (data.file) {
-    const file = data.file.toLowerCase();
 
-    // 🖼️ IMAGE CHECK
-    if (file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".gif")) {
-        contentHTML += `
-            <div>
-                <img src="/download/${data.file}" style="max-width:200px; border-radius:8px;">
-            </div>
-        `;
-    } else {
-        // 📎 NORMAL FILE
-        contentHTML += `
-            <div>
-                <a href="/download/${data.file}" target="_blank">
-                    📎 ${data.file}
-                </a>
-            </div>
-        `;
-    }
-}
-//-----------logic for drag and dorp --------
+// ================= DRAG & DROP =================
 const dropArea = document.getElementById("drop-area");
 
 dropArea.addEventListener("dragover", (e) => {
@@ -231,8 +231,9 @@ dropArea.addEventListener("drop", (e) => {
     e.preventDefault();
 
     const file = e.dataTransfer.files[0];
-
     if (!file) return;
+
+    console.log("File dropped:", file.name);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -243,12 +244,15 @@ dropArea.addEventListener("drop", (e) => {
     })
     .then(res => res.json())
     .then(data => {
+        console.log("Uploaded:", data.filename);
+
         socket.emit('send_message', {
             file: data.filename,
             username: "{{ current_user.username }}",
             project_id: projectId
         });
-    });
+    })
+    .catch(err => console.error("Upload error:", err));
 
     dropArea.style.background = "";
 });
