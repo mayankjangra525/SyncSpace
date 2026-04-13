@@ -84,9 +84,10 @@ def dashboard():
     all_projects = list({p.id: p for p in owned_projects + collaborated_projects}.values())
 
     return render_template("dashboard.html", projects=all_projects)
+#----------------------------------tool-------------------------------------
 @app.route('/project/<int:project_id>/tools')
 @login_required
-#----------------------------------tool-------------------------------------
+
 def tools(project_id):
     project = Project.query.get(project_id)
 
@@ -270,7 +271,32 @@ def add_collaborator(project_id):
     else:
        return "User not found ❌"
 
+#-------------------remove collaborators -----------
+@app.route('/remove_collaborator/<int:project_id>/<int:user_id>', methods=['POST'])
+@login_required
+def remove_collaborator(project_id, user_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    # 🔒 Only owner can remove
+    if project.user_id != current_user.id:
+        return "Only owner can remove collaborators 🚫"
+
+    collab = ProjectCollaborator.query.filter_by(
+        project_id=project_id,
+        user_id=user_id
+    ).first()
+
+    if not collab:
+        return "Collaborator not found ❌"
+
+    db.session.delete(collab)
+    db.session.commit()
+
     return redirect(url_for('project', project_id=project_id))
+
 #-------------------adding socket event ---------------------------------
 @socketio.on('join')
 def handle_join(data):

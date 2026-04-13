@@ -35,9 +35,24 @@
 </form>
 <h3>👥 Collaborators</h3>
 
+
+<ul>
+{% for collab in collaborators %}
+    <li>
+        {{ collab.user.username }}
+
+        {% if project.user_id == current_user.id %}
+        <form method="POST" action="{{ url_for('remove_collaborator', project_id=project.id, user_id=collab.user.id) }}" style="display:inline;">
+            <button style="color: red;" onclick="return confirm('Remove this collaborator?')">Remove</button>
+        </form>
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+
 <ul>
     {% for collab in collaborators %}
-        <li>{{ collab.user.username }}</li>
+       
     {% else %}
         <li>No collaborators yet</li>
     {% endfor %}
