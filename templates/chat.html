@@ -8,7 +8,7 @@
 
 <div id="chat-box" style="height:400px; border:1px solid #ccc; overflow-y:scroll;"></div>
 
-<input type="text" id="chat-input" placeholder="Type message...">
+<input type="text" style="color: black;" id="chat-input" placeholder="Type message...">
 <p id="typing-indicator" style="color: gray;"></p>
 <input type="file" id="file-input">
 <div id="drop-area" style="border:2px dashed gray; padding:10px; margin-bottom:10px;">
@@ -110,7 +110,13 @@ socket.on('receive_message', function(data) {
     const wrapper = document.createElement("div");
     wrapper.className = isMe ? "flex justify-end" : "flex justify-start";
 
-    const msg = document.createElement("div");
+   const msg = document.createElement("div");
+msg.style.opacity = "0";
+msg.style.transform = "translateY(10px)";
+setTimeout(() => {
+    msg.style.opacity = "1";
+    msg.style.transform = "translateY(0)";
+}, 10);
 
     if (isMe) {
         msg.className = "bg-primary text-white p-2 rounded-lg max-w-xs";

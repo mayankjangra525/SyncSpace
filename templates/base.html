@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SyncSpace</title>
+    <title>DevArch</title>
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,26 +23,139 @@
       }
     }
     </script>
+
+    <!-- 🔥 CUSTOM STYLES -->
+    <style>
+        * {
+            transition: all 0.2s ease-in-out;
+        }
+
+        body {
+            background: #080808;
+            color: white;
+        }
+
+        /* ✨ Fade In */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ✨ Card Hover */
+        .card-hover:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        /* ✨ Button Click */
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* ✨ Sidebar */
+        #sidebar {
+            overflow: hidden;
+        }
+
+        nav a:hover {
+            padding-left: 5px;
+            color: #6366f1;
+        }
+
+        /* ✨ Inputs */
+        input:focus {
+            outline: none;
+            border: 1px solid #6366f1;
+            box-shadow: 0 0 5px #6366f1;
+        }
+
+        /* ✨ Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+        }
+    </style>
 </head>
 
-<body class="bg-dark-900 text-white">
+<body>
 
-    <!-- 🔥 Navbar -->
-    <nav class="bg-dark-800 p-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold">SyncSpace</h1>
+<div class="flex">
 
-        <div class="space-x-4">
-          <span>{{ current_user.username }}</span>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
-        </div>
-    </nav>
-   
+    <!-- 🔥 SIDEBAR -->
+    <div id="sidebar" class="w-64 bg-dark-800 min-h-screen p-5 transition-all duration-300">
 
-    <!-- Page Content -->
-    <div class="max-w-5xl mx-auto mt-8 px-4">
-        {% block content %}{% endblock %}
+        <h2 class="text-2xl font-bold mb-6">DevArch 🚀</h2>
+
+        <nav class="flex flex-col gap-3">
+            <a href="{{ url_for('dashboard') }}"> Dashboard</a>
+
+            {% if current_user.is_authenticated %}
+                <span class="text-gray-400 mt-4">Logged in as:</span>
+                <span class="text-primary">{{ current_user.username }}</span>
+            {% endif %}
+
+            <a href="{{ url_for('logout') }}" class="text-red-400 mt-4">Logout</a>
+        </nav>
+
     </div>
+
+    <!-- 🔥 MAIN CONTENT -->
+    <div id="main-content" class="flex-1 p-8 fade-in transition-all duration-300">
+
+        <!-- ☰ TOGGLE BUTTON -->
+        <div class="flex items-center mb-6">
+            <button onclick="toggleSidebar()" 
+                    class="bg-dark-700 px-3 py-2 rounded-lg hover:scale-105">
+                ☰
+            </button>
+        </div>
+
+        {% block content %}{% endblock %}
+
+    </div>
+
+</div>
+
+<!-- 🔥 SCRIPT -->
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+
+    if (sidebar.style.width === "0px") {
+        sidebar.style.width = "16rem";
+        sidebar.style.padding = "20px";
+        localStorage.setItem("sidebar", "open");
+    } else {
+        sidebar.style.width = "0px";
+        sidebar.style.padding = "0px";
+        localStorage.setItem("sidebar", "closed");
+    }
+}
+
+// 🔥 LOAD STATE
+window.onload = function() {
+    const sidebar = document.getElementById("sidebar");
+    const state = localStorage.getItem("sidebar");
+
+    if (state === "closed") {
+        sidebar.style.width = "0px";
+        sidebar.style.padding = "0px";
+    }
+}
+</script>
 
 </body>
 </html>

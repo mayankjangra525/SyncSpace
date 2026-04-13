@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, send_from_directory
 from config import Config
-from models import db, User, Project, File, ProjectCollaborator
+from models import db, User, Project, File, ProjectCollaborator,DriveFile
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room
@@ -224,15 +224,16 @@ def project(project_id):
 
 
 # ------------------ DOWNLOAD ------------------
-@app.route('/download/<filename>')
+@app.route('/drive_download/<int:file_id>')
 @login_required
-def download_file(filename):
+def drive_download(file_id):
+    file = DriveFile.query.get(file_id)
+
     return send_from_directory(
-        app.config['UPLOAD_FOLDER'],
-        filename,
+        os.path.dirname(file.filepath),
+        os.path.basename(file.filepath),
         as_attachment=True
     )
-
 
 # ------------------ ADD COLLABORATOR ------------------
 @app.route('/add_collaborator/<int:project_id>', methods=['POST'])
@@ -394,6 +395,103 @@ def upload_chat_file(project_id):
     file.save(filepath)
 
     return {"filename": filename}
+#-----------------delete project -----------
+@app.route('/delete_project/<int:project_id>', methods=['POST'])
+@login_required
+def delete_project(project_id):
+    # 🔍 Get project
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    # 🔒 Only owner can delete
+    if project.user_id != current_user.id:
+        return "Only owner can delete this project 🚫"
+
+    # 🧹 Delete related collaborators
+    ProjectCollaborator.query.filter_by(project_id=project_id).delete()
+
+    # 🧹 Delete related files
+    File.query.filter_by(project_id=project_id).delete()
+
+    # 🧹 Delete canvas data (IMPORTANT if you added Canvas model)
+    try:
+        from models import Canvas
+        Canvas.query.filter_by(project_id=project_id).delete()
+    except:
+        pass  # ignore if not exists
+
+    # 🗑 Delete project
+    db.session.delete(project)
+    db.session.commit()
+
+    return redirect(url_for('dashboard'))
+
+#-------------collaborators managers----------
+@app.route('/project/<int:project_id>/collaborators')
+@login_required
+def collaborator_manager(project_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    # Access check
+    is_owner = project.user_id == current_user.id
+    collab = ProjectCollaborator.query.filter_by(
+        project_id=project_id,
+        user_id=current_user.id
+    ).first()
+
+    if not is_owner and not collab:
+        return "Access Denied 🚫"
+
+    collaborators = ProjectCollaborator.query.filter_by(project_id=project_id).all()
+
+    return render_template("collaborators.html", project=project, collaborators=collaborators)
+#-------------------adding route for the drive 
+@app.route('/project/<int:project_id>/drive', methods=['GET', 'POST'])
+@login_required
+def drive(project_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    # access control
+    is_owner = project.user_id == current_user.id
+    collab = ProjectCollaborator.query.filter_by(
+        project_id=project_id,
+        user_id=current_user.id
+    ).first()
+
+    if not is_owner and not collab:
+        return "Access Denied 🚫"
+
+    # 📤 UPLOAD
+    if request.method == "POST":
+        file = request.files['file']
+
+        filename = file.filename
+        filepath = os.path.join("uploads/drive", filename)
+
+        os.makedirs("uploads/drive", exist_ok=True)
+        file.save(filepath)
+
+        new_file = DriveFile(
+            filename=filename,
+            filepath=filepath,
+            user_id=current_user.id,
+            project_id=project_id
+        )
+
+        db.session.add(new_file)
+        db.session.commit()
+
+    files = DriveFile.query.filter_by(project_id=project_id).all()
+
+    return render_template("drive.html", project=project, files=files)
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():

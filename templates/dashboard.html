@@ -2,36 +2,99 @@
 
 {% block content %}
 
-<h1 class="text-3xl font-bold mb-8">Your Projects</h1>
+<!-- 🔥 HEADER -->
+<div class="flex justify-between items-center mb-10">
+    <h1 class="text-3xl font-bold">📁 Your Projects</h1>
 
-<div class="flex justify-end mb-6">
     <a href="{{ url_for('create_project') }}">
-        <button class="bg-primary px-4 py-2 rounded-lg">
+        <button class="bg-primary px-4 py-2 rounded-lg hover:scale-105 transition">
             + New Project
         </button>
     </a>
 </div>
 
-<div class="grid md:grid-cols-2 gap-6">
+<!-- 🔥 PROJECT GRID -->
+<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
     {% for project in projects %}
-    <div class="bg-dark-800 p-5 rounded-xl hover:scale-105 transition">
-        
-        <h2 class="text-xl mb-2">{{ project.name }}</h2>
+    <div class="bg-dark-800 p-5 rounded-xl hover:scale-105 transition relative">
 
-        <a href="{{ url_for('project', project_id=project.id) }}" class="text-primary">
-            Open →
-        </a>
+        <!-- ⚙️ SETTINGS BUTTON -->
+        <button onclick="togglePanel({{ project.id }})"
+                class="absolute top-3 right-3 text-gray-400 hover:text-white text-lg">
+            ⚙️
+        </button>
 
-        <p class="mt-2 text-sm">
+        <!-- 📌 PROJECT NAME -->
+        <h2 class="text-xl font-semibold mb-1">
+            {{ project.name }}
+        </h2>
+
+        <!-- 👤 ROLE -->
+        <p class="text-sm text-gray-400 mb-3">
             {% if project.user_id == current_user.id %}
-                (Owner)
+                Owner
             {% else %}
-                (Collaborator)
+                Collaborator
             {% endif %}
         </p>
 
+        <!-- 🔗 OPEN PROJECT -->
+        <a href="{{ url_for('project', project_id=project.id) }}"
+           class="text-primary hover:underline">
+            Open →
+        </a>
+
+        <!-- ⚙️ DROPDOWN PANEL -->
+        <div id="panel-{{ project.id }}"
+             class="hidden absolute right-3 top-10 bg-dark-700 p-3 rounded-lg shadow-lg w-44 z-50">
+
+            <!-- 🧰 TOOLS -->
+            <a href="{{ url_for('tools', project_id=project.id) }}"
+               class="block mb-2 hover:text-primary">
+                🧰 Tools
+            </a>
+
+            <!-- 🗑 DELETE -->
+            {% if project.user_id == current_user.id %}
+            <form method="POST"
+                  action="{{ url_for('delete_project', project_id=project.id) }}">
+                <button class="text-red-400 hover:text-red-600 text-sm">
+                    🗑 Delete
+                </button>
+            </form>
+            {% endif %}
+
+        </div>
+
     </div>
     {% endfor %}
+
 </div>
+
+<!-- 🧠 JS FOR DROPDOWN -->
+<script>
+function togglePanel(id) {
+    const panel = document.getElementById("panel-" + id);
+
+    // close all panels
+    document.querySelectorAll("[id^='panel-']").forEach(p => {
+        if (p !== panel) p.classList.add("hidden");
+    });
+
+    panel.classList.toggle("hidden");
+}
+
+// OPTIONAL: close when clicking outside
+document.addEventListener("click", function(e) {
+    const panels = document.querySelectorAll("[id^='panel-']");
+
+    panels.forEach(panel => {
+        if (!panel.contains(e.target) && !e.target.closest("button")) {
+            panel.classList.add("hidden");
+        }
+    });
+});
+</script>
 
 {% endblock %}

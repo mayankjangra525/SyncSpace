@@ -2,62 +2,53 @@
 
 {% block content %}
 
-<h1 class="text-3xl mb-6">{{ project.name }}</h1>
+<div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold">📦 {{ project.name }}</h1>
 
-<div class="bg-dark-800 p-5 rounded-xl mb-6">
-    <form method="POST" enctype="multipart/form-data" class="flex gap-3">
-        <input type="file" name="file" class="bg-dark-700 p-2 rounded w-full">
-        <button class="bg-primary px-4 py-2 rounded">Upload</button>
-    </form>
+    <a href="{{ url_for('tools', project_id=project.id) }}"
+       class="bg-primary px-4 py-2 rounded-lg hover:scale-105">
+        🧰 Tools
+    </a>
 </div>
 
-<h2 class="text-xl mb-4">Files</h2>
+<!-- 🧬 VERSION CONTROL -->
+<div class="bg-dark-800 p-6 rounded-xl shadow">
 
-<div class="space-y-4">
+    <h2 class="text-xl mb-4">🧬 Version Control</h2>
+
+    <!-- UPLOAD -->
+    <form method="POST" enctype="multipart/form-data" class="mb-6 flex gap-3">
+        <input type="file" name="file">
+        <input type="text" name="message" placeholder="Commit message"
+               class="bg-dark-700 px-3 py-1 rounded">
+        <button class="bg-primary px-4 py-1 rounded">Upload</button>
+    </form>
+
+    <!-- FILE LIST -->
+    <div class="space-y-3">
     {% for file in files %}
-    <div class="bg-dark-800 p-4 rounded-lg flex justify-between">
+    <div class="bg-dark-700 p-3 rounded flex justify-between">
+
         <div>
-            <p>{{ file.filename }}</p>
-            <p class="text-sm text-gray-400">v{{ file.version }}</p>
+            <p>{{ file.original_name }}</p>
+
+            <p class="text-xs text-gray-400">
+                v{{ file.version }} • {{ file.commit_message }}
+            </p>
+
+            <!-- ⏰ TIMESTAMP -->
+            <p class="text-xs text-gray-500">
+                {{ file.timestamp.strftime("%d %b %Y, %I:%M %p") }}
+            </p>
         </div>
 
-        <a href="{{ url_for('download_file', filename=file.filename) }}">
-            <button class="bg-primary px-3 py-1 rounded">Download</button>
+        <a href="/download/{{ file.filename }}"
+           class="text-primary text-sm">
+            Download
         </a>
+
     </div>
     {% endfor %}
 </div>
-<h3>Add Collaborator</h3>
 
-<form method="POST" action="{{ url_for('add_collaborator', project_id=project.id) }}">
-    <input type="text" name="username" placeholder="Enter username" required>
-    <button type="submit">Add</button>
-</form>
-<h3>👥 Collaborators</h3>
-
-
-<ul>
-{% for collab in collaborators %}
-    <li>
-        {{ collab.user.username }}
-
-        {% if project.user_id == current_user.id %}
-        <form method="POST" action="{{ url_for('remove_collaborator', project_id=project.id, user_id=collab.user.id) }}" style="display:inline;">
-            <button style="color: red;" onclick="return confirm('Remove this collaborator?')">Remove</button>
-        </form>
-        {% endif %}
-    </li>
-{% endfor %}
-</ul>
-
-<ul>
-    {% for collab in collaborators %}
-       
-    {% else %}
-        <li>No collaborators yet</li>
-    {% endfor %}
-</ul>
-<a href="{{ url_for('tools', project_id=project.id) }}">
-    <button>Open Tools ⚙️</button>
-</a>
 {% endblock %}
