@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-xl mb-4">💻 Editor - {{ file.original_name }}</h1>
+
+<!-- EDITOR -->
+<div id="editor" style="height:70vh; border-radius:10px;"></div>
+
+<!-- ACTION BUTTONS -->
+<div class="mt-4 flex gap-3">
+    <button onclick="saveCode()"
+            class="bg-primary px-4 py-2 rounded-lg hover:scale-105 transition">
+        💾 Save
+    </button>
+
+    <a href="{{ url_for('project', project_id=file.project_id) }}"
+       class="px-4 py-2 bg-gray-600 rounded-lg">
+        Back
+    </a>
+</div>
+
+<!-- MONACO LOADER -->
+<script src="https://unpkg.com/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+<script>
+let editor;
+
+// 🔥 SAFE CONTENT FROM JINJA
+const fileContent = {{ content | tojson }};
+
+// 🔥 LOAD MONACO
+require.config({
+    paths: {
+        vs: "https://unpkg.com/monaco-editor@0.44.0/min/vs"
+    }
+});
+
+require(["vs/editor/editor.main"], function () {
+
+    editor = monaco.editor.create(document.getElementById("editor"), {
+        value: fileContent,
+        language: "python",  // you can make dynamic later
+        theme: "vs-dark",
+        automaticLayout: true,
+        fontSize: 14,
+        minimap: { enabled: true }
+    });
+
+});
+
+// 💾 SAVE BUTTON (NEXT STEP)
+function saveCode() {
+    const code = editor.getValue();
+    console.log(code);
+    alert("Save feature coming next 🚀");
+}
+</script>
+
+{% endblock %}

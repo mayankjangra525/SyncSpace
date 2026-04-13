@@ -51,7 +51,10 @@
    class="text-sm text-yellow-400 ml-3">
    History
 </a>
-
+<a href="{{ url_for('code_editor', file_id=file.id) }}"
+   class="text-blue-400 text-sm ml-3">
+   Open in Editor
+</a>
     </div>
     {% endfor %}
 </div>

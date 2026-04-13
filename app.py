@@ -596,6 +596,37 @@ def file_diff(file1_id, file2_id):
         file1=file1,
         file2=file2
     )
+#-------------creating route for code editor ----------------
+@app.route('/editor/<int:file_id>')
+@login_required
+def code_editor(file_id):
+    file = File.query.get(file_id)
+
+    if not file:
+        return "File not found ❌"
+
+    # Access control (same logic as project)
+    project = Project.query.get(file.project_id)
+
+    is_owner = project.user_id == current_user.id
+    collaborator = ProjectCollaborator.query.filter_by(
+        project_id=project.id,
+        user_id=current_user.id
+    ).first()
+
+    if not is_owner and not collaborator:
+        return "Access Denied 🚫"
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return render_template(
+        "editor.html",
+        file=file,
+        content=content
+    )
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
