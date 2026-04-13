@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-xl mb-6">
+    🔍 Comparing v{{ file1.version }} ↔ v{{ file2.version }}
+</h1>
+
+<div class="bg-dark-800 rounded-xl overflow-hidden text-sm font-mono">
+
+    <!-- HEADER -->
+    <div class="grid grid-cols-2 bg-dark-700 p-3 text-center font-semibold">
+        <div class="text-red-400">Old Version</div>
+        <div class="text-green-400">New Version</div>
+    </div>
+
+    <!-- DIFF ROWS -->
+    {% for row in diff_data %}
+    <div class="grid grid-cols-2">
+
+        <!-- LEFT -->
+        <div class="
+            px-3 py-1 border-r border-gray-700
+            {% if row.type == 'delete' %} bg-red-900 {% endif %}
+            {% if row.type == 'change' %} bg-yellow-900 {% endif %}
+        ">
+            {{ row.left }}
+        </div>
+
+        <!-- RIGHT -->
+        <div class="
+            px-3 py-1
+            {% if row.type == 'insert' %} bg-green-900 {% endif %}
+            {% if row.type == 'change' %} bg-yellow-900 {% endif %}
+        ">
+            {{ row.right }}
+        </div>
+
+    </div>
+    {% endfor %}
+
+</div>
+
+{% endblock %}

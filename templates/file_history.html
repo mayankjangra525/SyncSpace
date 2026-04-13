@@ -22,11 +22,21 @@
         </div>
 
         <div class="flex gap-3">
+
             <!-- 👀 VIEW -->
             <a href="{{ url_for('view_file', filename=f.filename) }}"
-   class="text-primary text-sm">
-   View
-</a>
+               class="text-primary text-sm">
+                View
+            </a>
+
+            <!-- 🔥 COMPARE BUTTON -->
+            {% if not loop.first %}
+            <a href="{{ url_for('file_diff', file1_id=f.id, file2_id=history[0].id) }}"
+               class="text-green-400 text-sm">
+               Compare
+            </a>
+            {% endif %}
+
         </div>
 
     </div>

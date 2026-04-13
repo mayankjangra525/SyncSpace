@@ -525,6 +525,77 @@ def view_file(filename):
         content = f.read()
 
     return render_template("file_view.html", content=content, filename=filename)
+#-----------creating route for the file_diffr----
+import difflib
+
+@app.route('/file/diff/<int:file1_id>/<int:file2_id>')
+@login_required
+def file_diff(file1_id, file2_id):
+    file1 = File.query.get(file1_id)
+    file2 = File.query.get(file2_id)
+
+    if not file1 or not file2:
+        return "Files not found ❌"
+
+    path1 = os.path.join(app.config['UPLOAD_FOLDER'], file1.filename)
+    path2 = os.path.join(app.config['UPLOAD_FOLDER'], file2.filename)
+
+    with open(path1, "r", encoding="utf-8") as f1:
+        lines1 = f1.readlines()
+
+    with open(path2, "r", encoding="utf-8") as f2:
+        lines2 = f2.readlines()
+
+    # 🔥 SMART MATCHING ENGINE
+    matcher = difflib.SequenceMatcher(None, lines1, lines2)
+
+    diff_data = []
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+
+        if tag == 'equal':
+            for i, j in zip(range(i1, i2), range(j1, j2)):
+                diff_data.append({
+                    "left": lines1[i],
+                    "right": lines2[j],
+                    "type": "same"
+                })
+
+        elif tag == 'replace':
+            max_len = max(i2 - i1, j2 - j1)
+
+            for k in range(max_len):
+                left_line = lines1[i1 + k] if i1 + k < i2 else ""
+                right_line = lines2[j1 + k] if j1 + k < j2 else ""
+
+                diff_data.append({
+                    "left": left_line,
+                    "right": right_line,
+                    "type": "change"
+                })
+
+        elif tag == 'delete':
+            for i in range(i1, i2):
+                diff_data.append({
+                    "left": lines1[i],
+                    "right": "",
+                    "type": "delete"
+                })
+
+        elif tag == 'insert':
+            for j in range(j1, j2):
+                diff_data.append({
+                    "left": "",
+                    "right": lines2[j],
+                    "type": "insert"
+                })
+
+    return render_template(
+        "diff.html",
+        diff_data=diff_data,
+        file1=file1,
+        file2=file2
+    )
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
