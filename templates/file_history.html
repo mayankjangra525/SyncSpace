@@ -23,10 +23,10 @@
 
         <div class="flex gap-3">
             <!-- 👀 VIEW -->
-            <a href="/download/{{ f.filename }}"
-               class="text-primary text-sm">
-                View
-            </a>
+            <a href="{{ url_for('view_file', filename=f.filename) }}"
+   class="text-primary text-sm">
+   View
+</a>
         </div>
 
     </div>

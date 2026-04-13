@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-xl mb-4">📄 {{ filename }}</h1>
+
+<div class="bg-dark-800 p-4 rounded-xl overflow-auto">
+
+<pre class="text-sm text-gray-200">
+{% for line in content.split('\n') %}
+{{ loop.index }}  {{ line }}
+{% endfor %}
+</pre>
+
+</div>
+
+{% endblock %}

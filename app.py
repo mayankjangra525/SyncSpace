@@ -512,6 +512,19 @@ def file_history(file_id):
         file=file,
         history=history
     )
+#-------route to view file online on browser------
+@app.route('/file/view/<filename>')
+@login_required
+def view_file(filename):
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    if not os.path.exists(filepath):
+        return "File not found ❌"
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return render_template("file_view.html", content=content, filename=filename)
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
