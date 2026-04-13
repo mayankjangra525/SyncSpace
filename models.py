@@ -60,3 +60,4 @@ class DriveFile(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
 
     uploaded_at = db.Column(db.DateTime, default=db.func.now())
+files = db.relationship('File', backref='project')

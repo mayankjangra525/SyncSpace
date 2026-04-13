@@ -627,6 +627,71 @@ def code_editor(file_id):
         file=file,
         content=content
     )
+#---------------creating route for save the code form code editor----------------
+@app.route('/editor/save/<int:file_id>', methods=['POST'])
+@login_required
+def save_code(file_id):
+    file = File.query.get(file_id)
+
+    if not file:
+        return {"error": "File not found"}, 404
+
+    project = Project.query.get(file.project_id)
+
+    # 🔒 Access check
+    is_owner = project.user_id == current_user.id
+    collaborator = ProjectCollaborator.query.filter_by(
+        project_id=project.id,
+        user_id=current_user.id
+    ).first()
+
+    if not is_owner and not collaborator:
+        return {"error": "Access denied"}, 403
+
+    data = request.json
+    new_code = data.get("code")
+    message = data.get("message", "Updated via editor")
+
+    # 🔥 VERSION LOGIC
+    existing_files = File.query.filter_by(
+        project_id=file.project_id,
+        original_name=file.original_name
+    ).all()
+
+    new_version = len(existing_files) + 1
+
+    name, ext = os.path.splitext(file.filename)
+    new_filename = f"{file.original_name}_v{new_version}{ext}"
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+
+    # 💾 SAVE FILE
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(new_code)
+
+    # 🗂 SAVE DB
+    new_file = File(
+        filename=new_filename,
+        version=new_version,
+        project_id=file.project_id,
+        commit_message=message,
+        original_name=file.original_name
+    )
+
+    db.session.add(new_file)
+    db.session.commit()
+
+    return {"success": True}
+#-----------adding route to add the editor as tool also 
+@app.route('/project/<int:project_id>/editor')
+@login_required
+def project_editor(project_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    return render_template("editor_tool.html", project=project)
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
