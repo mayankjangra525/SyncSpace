@@ -25,6 +25,7 @@
     </form>
 
     <!-- FILE LIST -->
+     
     <div class="space-y-3">
     {% for file in files %}
     <div class="bg-dark-700 p-3 rounded flex justify-between">
@@ -46,6 +47,10 @@
            class="text-primary text-sm">
             Download
         </a>
+        <a href="{{ url_for('file_history', file_id=file.id) }}"
+   class="text-sm text-yellow-400 ml-3">
+   History
+</a>
 
     </div>
     {% endfor %}

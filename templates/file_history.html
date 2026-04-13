@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-2xl mb-6">
+    📜 History - {{ file.original_name }}
+</h1>
+
+<div class="space-y-4">
+
+    {% for f in history %}
+    <div class="bg-dark-800 p-4 rounded-lg flex justify-between items-center">
+
+        <div>
+            <p class="font-semibold">
+                v{{ f.version }} • {{ f.commit_message }}
+            </p>
+
+            <p class="text-xs text-gray-400">
+                {{ f.timestamp.strftime("%d %b %Y, %I:%M %p") }}
+            </p>
+        </div>
+
+        <div class="flex gap-3">
+            <!-- 👀 VIEW -->
+            <a href="/download/{{ f.filename }}"
+               class="text-primary text-sm">
+                View
+            </a>
+        </div>
+
+    </div>
+    {% endfor %}
+
+</div>
+
+{% endblock %}

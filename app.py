@@ -492,6 +492,26 @@ def drive(project_id):
     files = DriveFile.query.filter_by(project_id=project_id).all()
 
     return render_template("drive.html", project=project, files=files)
+#------------adding route for commit history
+@app.route('/file/<int:file_id>/history')
+@login_required
+def file_history(file_id):
+    file = File.query.get(file_id)
+
+    if not file:
+        return "File not found ❌"
+
+    # 🔥 Get all versions of same file
+    history = File.query.filter_by(
+        project_id=file.project_id,
+        original_name=file.original_name
+    ).order_by(File.version.desc()).all()
+
+    return render_template(
+        "file_history.html",
+        file=file,
+        history=history
+    )
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
