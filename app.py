@@ -692,6 +692,67 @@ def project_editor(project_id):
         return "Project not found ❌"
 
     return render_template("editor_tool.html", project=project)
+#rouet for featch project file-------
+@app.route('/editor/file/<int:file_id>')
+@login_required
+def get_file_content(file_id):
+    file = File.query.get(file_id)
+
+    if not file:
+        return {"error": "File not found"}, 404
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return {
+        "content": content,
+        "filename": file.original_name
+    }
+#--------route for save file as new version in editor ------------
+@app.route('/editor/save_new/<int:project_id>', methods=['POST'])
+@login_required
+def save_new_file(project_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return {"error": "Project not found"}, 404
+
+    data = request.json
+    code = data.get("code")
+    filename = data.get("filename")
+    message = data.get("message", "Added new file")
+
+    name, ext = os.path.splitext(filename)
+
+    # 🔥 VERSION LOGIC
+    existing_files = File.query.filter_by(
+        project_id=project_id,
+        original_name=name
+    ).all()
+
+    version = len(existing_files) + 1
+
+    new_filename = f"{name}_v{version}{ext}"
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(code)
+
+    new_file = File(
+        filename=new_filename,
+        version=version,
+        project_id=project_id,
+        commit_message=message,
+        original_name=name
+    )
+
+    db.session.add(new_file)
+    db.session.commit()
+
+    return {"success": True}
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():

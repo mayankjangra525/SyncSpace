@@ -26,9 +26,8 @@
 
 <script>
 let editor;
-
-// 🔥 SAFE CONTENT FROM JINJA
-const fileContent = {{ content | tojson }};
+let currentFileId = null;
+let currentFileName = null;
 
 // 🔥 LOAD MONACO
 require.config({
@@ -40,42 +39,156 @@ require.config({
 require(["vs/editor/editor.main"], function () {
 
     editor = monaco.editor.create(document.getElementById("editor"), {
-        value: fileContent,
-        language: "python",  // you can make dynamic later
+        value: "",
+        language: "javascript",
         theme: "vs-dark",
         automaticLayout: true,
         fontSize: 14,
         minimap: { enabled: true }
     });
 
+    console.log("Editor Loaded ✅");
 });
 
-// 💾 SAVE BUTTON (NEXT STEP)
+// 🔥 LANGUAGE SWITCH
+function setEditorLanguage(ext) {
+    let lang = "plaintext";
 
-function saveCode() {
+    if (ext === "py") lang = "python";
+    else if (ext === "js") lang = "javascript";
+    else if (ext === "html") lang = "html";
+    else if (ext === "css") lang = "css";
+
+    if (editor) {
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+    }
+}
+
+// 🔥 LOAD LOCAL FILE
+function loadLocalFile() {
+    const input = document.getElementById("localFile");
+    const file = input.files[0];
+
+    if (!file) {
+        alert("Select file ❌");
+        return;
+    }
+
+    if (!editor) {
+        alert("Editor not ready ❌");
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        editor.setValue(e.target.result);
+
+        currentFileName = file.name;
+        currentFileId = null; // IMPORTANT
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        setEditorLanguage(ext);
+    };
+
+    reader.readAsText(file);
+}
+
+// 🔥 OPEN PROJECT FILE
+function openFile(fileId) {
+    fetch(`/editor/file/${fileId}`)
+        .then(res => res.json())
+        .then(data => {
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            if (!editor) {
+                alert("Editor not ready ❌");
+                return;
+            }
+
+            editor.setValue(data.content);
+
+            // 🔥 IMPORTANT FIX
+            currentFileId = fileId;
+            currentFileName = null;
+
+            console.log("Opened file:", data.filename);
+        })
+        .catch(err => console.error(err));
+}
+
+// 🔥 SAVE LOGIC
+function saveAsVersion() {
+
+    if (!editor) {
+        alert("Editor not ready ❌");
+        return;
+    }
+
     const code = editor.getValue();
     const message = prompt("Enter commit message:");
 
-    fetch("/editor/save/{{ file.id }}", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            code: code,
-            message: message
+    if (!message) {
+        alert("Commit message required ❌");
+        return;
+    }
+
+    // ✅ EXISTING FILE
+    if (currentFileId) {
+
+        fetch(`/editor/save/${currentFileId}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                code: code,
+                message: message
+            })
         })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert("✅ Saved as new version!");
-        } else {
-            alert("❌ Error saving file");
-        }
-    });
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("✅ Saved as new version!");
+            } else {
+                alert("❌ Error saving");
+            }
+        });
+
+    }
+
+    // ✅ NEW UPLOADED FILE
+    else if (currentFileName) {
+
+        fetch(`/editor/save_new/{{ project.id }}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                code: code,
+                filename: currentFileName,
+                message: message
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("✅ File added as new project file!");
+            } else {
+                alert("❌ Error saving");
+            }
+        });
+
+    }
+
+    else {
+        alert("No file to save ❌");
+    }
 }
-
 </script>
-
 {% endblock %}
