@@ -81,3 +81,13 @@ class DriveFile(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     uploaded_at = db.Column(db.DateTime, default=db.func.now())
+#-----------AI Project tracker-----------
+class AIProject(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+
+    prompt = db.Column(db.Text)
+
+    tasks = db.Column(db.Text)  # store JSON string
+    progress = db.Column(db.Integer, default=0)

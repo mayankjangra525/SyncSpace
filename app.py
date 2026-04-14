@@ -1,9 +1,10 @@
 from flask import Flask, render_template, redirect, url_for, request, send_from_directory
 from config import Config
-from models import db, User, Project, File, ProjectCollaborator,DriveFile
+from models import db, User, Project, File, ProjectCollaborator, DriveFile, Canvas, Message, AIProject
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room
+import json
 import os
 
 app = Flask(__name__)
@@ -784,6 +785,52 @@ def save_to_drive():
     db.session.commit()
 
     return {"success": True}
+#-------------route for ai progress tracker------------
+
+
+@app.route('/project/<int:project_id>/ai', methods=['GET', 'POST'])
+@login_required
+def ai_tracker(project_id):
+    project = Project.query.get(project_id)
+
+    if not project:
+        return "Project not found ❌"
+
+    if request.method == "POST":
+        prompt = request.form.get("prompt")
+
+        # 🔥 BASIC TASK GENERATOR (fake AI for now)
+        tasks = [
+            {"task": "Setup project structure", "done": False},
+            {"task": "Build authentication", "done": False},
+            {"task": "Create main feature", "done": False},
+            {"task": "Add UI", "done": False},
+            {"task": "Testing & deployment", "done": False}
+        ]
+
+        ai = AIProject(
+            project_id=project_id,
+            prompt=prompt,
+            tasks=json.dumps(tasks),
+            progress=0
+        )
+
+        db.session.add(ai)
+        db.session.commit()
+
+    ai = AIProject.query.filter_by(project_id=project_id).first()
+
+    if ai:
+        tasks = json.loads(ai.tasks)
+    else:
+        tasks = []
+
+    return render_template(
+        "ai_tracker.html",
+        project=project,
+        ai=ai,
+        tasks=tasks
+    )
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():

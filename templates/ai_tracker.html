@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="text-2xl mb-6">🤖 AI Project Tracker</h1>
+
+<!-- 🔹 PROMPT FORM -->
+<form method="POST" class="mb-6">
+    <textarea name="prompt" placeholder="Describe your project..."
+              class="w-full p-3 rounded text-black"></textarea>
+
+    <button class="bg-primary px-4 py-2 mt-3 rounded">
+        Generate Plan
+    </button>
+</form>
+
+{% if ai %}
+
+<!-- 📊 PROGRESS BAR -->
+<div class="mb-6">
+    <p class="mb-2">Progress: {{ ai.progress }}%</p>
+
+    <div class="w-full bg-gray-700 rounded">
+        <div class="bg-green-500 h-4 rounded"
+             style="width: {{ ai.progress }}%">
+        </div>
+    </div>
+</div>
+
+<!-- ✅ TASK LIST -->
+<div class="space-y-2">
+    {% for t in tasks %}
+    <div class="bg-dark-800 p-3 rounded flex justify-between">
+        <span>{{ t.task }}</span>
+        <span>{% if t.done %}✅{% else %}⬜{% endif %}</span>
+    </div>
+    {% endfor %}
+</div>
+
+{% endif %}
+
+{% endblock %}
