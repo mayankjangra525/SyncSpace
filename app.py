@@ -459,7 +459,7 @@ def drive(project_id):
     if not project:
         return "Project not found ❌"
 
-    # access control
+    # 🔒 Access control
     is_owner = project.user_id == current_user.id
     collab = ProjectCollaborator.query.filter_by(
         project_id=project_id,
@@ -482,14 +482,14 @@ def drive(project_id):
         new_file = DriveFile(
             filename=filename,
             filepath=filepath,
-            user_id=current_user.id,
-            project_id=project_id
+            user_id=current_user.id
         )
 
         db.session.add(new_file)
         db.session.commit()
 
-    files = DriveFile.query.filter_by(project_id=project_id).all()
+    # 🔥 ALWAYS FETCH FILES (IMPORTANT)
+    files = DriveFile.query.filter_by(user_id=current_user.id).all()
 
     return render_template("drive.html", project=project, files=files)
 #------------adding route for commit history
@@ -750,6 +750,37 @@ def save_new_file(project_id):
     )
 
     db.session.add(new_file)
+    db.session.commit()
+
+    return {"success": True}
+#-----------adding route to save in drive editor file-----------
+@app.route('/drive/save', methods=['POST'])
+@login_required
+def save_to_drive():
+    data = request.json
+
+    code = data.get("code")
+    filename = data.get("filename")
+
+    if not filename:
+        return {"error": "Filename required"}, 400
+
+    # 🔥 UNIQUE FILE NAME
+    name, ext = os.path.splitext(filename)
+    new_filename = f"{name}_{current_user.id}{ext}"
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(code)
+
+    # 💾 SAVE IN DB
+    file = DriveFile(
+        filename=new_filename,
+        user_id=current_user.id
+    )
+
+    db.session.add(file)
     db.session.commit()
 
     return {"success": True}

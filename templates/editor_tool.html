@@ -226,5 +226,74 @@ function saveAsVersion() {
         alert("No file to save ❌");
     }
 }
+
+function createNewFile() {
+    const filename = prompt("Enter file name (e.g. app.py):");
+
+    if (!filename) {
+        alert("File name required ❌");
+        return;
+    }
+
+    if (!editor) {
+        alert("Editor not ready ❌");
+        return;
+    }
+
+    // 🔥 CLEAR EDITOR
+    editor.setValue("");
+
+    // 🔥 SET STATE
+    currentFileId = null;
+    currentFileName = filename;
+
+    // 🔥 SET LANGUAGE
+    const ext = filename.split('.').pop().toLowerCase();
+    setEditorLanguage(ext);
+
+    console.log("New file created:", filename);
+}
+
+function saveToDrive() {
+
+    if (!editor) {
+        alert("Editor not ready ❌");
+        return;
+    }
+
+    const code = editor.getValue();
+
+    let filename = currentFileName;
+
+    // if opened from project → ask new name
+    if (!filename) {
+        filename = prompt("Enter file name for drive:");
+    }
+
+    if (!filename) {
+        alert("Filename required ❌");
+        return;
+    }
+
+    fetch("/drive/save", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            code: code,
+            filename: filename
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("✅ Saved to Drive!");
+        } else {
+            alert("❌ Error saving");
+        }
+    });
+}
+
 </script>
 {% endblock %}
