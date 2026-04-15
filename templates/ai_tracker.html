@@ -17,25 +17,77 @@
 {% if ai %}
 
 <!-- 📊 PROGRESS BAR -->
-<div class="mb-6">
-    <p class="mb-2">Progress: {{ ai.progress }}%</p>
+<p id="progressText" class="mb-2">Progress: {{ ai.progress }}%</p>
 
-    <div class="w-full bg-gray-700 rounded">
-        <div class="bg-green-500 h-4 rounded"
-             style="width: {{ ai.progress }}%">
-        </div>
+<div class="w-full bg-gray-700 rounded">
+    <div id="progressBar"
+         class="bg-green-500 h-4 rounded"
+         style="width: {{ ai.progress }}%">
     </div>
 </div>
+{% if ai.suggestion %}
+<div class="mt-4 bg-purple-900 p-4 rounded-xl">
+    <h3 class="text-lg mb-2">💡 AI Suggestion</h3>
+    <p>{{ ai.suggestion }}</p>
+</div>
+{% endif %}
 
 <!-- ✅ TASK LIST -->
-<div class="space-y-2">
+<div class="space-y-2" id="taskList">
     {% for t in tasks %}
-    <div class="bg-dark-800 p-3 rounded flex justify-between">
+    <div class="bg-dark-800 p-3 rounded flex justify-between items-center">
+
         <span>{{ t.task }}</span>
-        <span>{% if t.done %}✅{% else %}⬜{% endif %}</span>
+
+        <input type="checkbox"
+               {% if t.done %}checked{% endif %}
+               onchange="toggleTask({{ loop.index0 }}, this.checked)">
     </div>
     {% endfor %}
 </div>
+{% if analysis %}
+<div class="mt-6 bg-blue-900 p-4 rounded-xl">
+    <h3 class="text-lg mb-2">🧠 AI Code Analysis</h3>
+    <pre class="text-sm whitespace-pre-wrap">{{ analysis }}</pre>
+</div>
+{% endif %}
+<script>
+
+let tasks = {{ tasks | tojson | safe }};
+let aiId = {{ ai.id if ai else 0 }};
+
+
+function toggleTask(index, status) {
+    tasks[index].done = status;
+
+    fetch(`/ai/update/${aiId}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            tasks: tasks
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+    if (data.success) {
+        updateProgressBar(data.progress);
+
+        // 🔥 Update suggestion dynamically
+        location.reload();  // simple reload for now
+    }
+});
+}
+
+function updateProgressBar(progress) {
+    const bar = document.getElementById("progressBar");
+    const text = document.getElementById("progressText");
+
+    bar.style.width = progress + "%";
+    text.innerText = "Progress: " + progress + "%";
+}
+</script>
 
 {% endif %}
 

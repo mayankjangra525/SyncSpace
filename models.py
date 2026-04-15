@@ -91,3 +91,4 @@ class AIProject(db.Model):
 
     tasks = db.Column(db.Text)  # store JSON string
     progress = db.Column(db.Integer, default=0)
+    suggestion = db.Column(db.String(300))

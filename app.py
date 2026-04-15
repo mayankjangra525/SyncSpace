@@ -5,7 +5,14 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room
 import json
+import requests
 import os
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 app = Flask(__name__)
 online_users = {}   # { project_id: { socket_id: username } }
@@ -604,7 +611,7 @@ def code_editor(file_id):
     file = File.query.get(file_id)
 
     if not file:
-        return "File not found ❌"
+        return "File not found "
 
     # Access control (same logic as project)
     project = Project.query.get(file.project_id)
@@ -616,7 +623,7 @@ def code_editor(file_id):
     ).first()
 
     if not is_owner and not collaborator:
-        return "Access Denied 🚫"
+        return "Access Denied "
 
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
 
@@ -639,7 +646,7 @@ def save_code(file_id):
 
     project = Project.query.get(file.project_id)
 
-    # 🔒 Access check
+    #  Access check
     is_owner = project.user_id == current_user.id
     collaborator = ProjectCollaborator.query.filter_by(
         project_id=project.id,
@@ -653,7 +660,7 @@ def save_code(file_id):
     new_code = data.get("code")
     message = data.get("message", "Updated via editor")
 
-    # 🔥 VERSION LOGIC
+    #  VERSION LOGIC
     existing_files = File.query.filter_by(
         project_id=file.project_id,
         original_name=file.original_name
@@ -666,7 +673,7 @@ def save_code(file_id):
 
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
 
-    # 💾 SAVE FILE
+    #  SAVE FILE
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(new_code)
 
@@ -690,7 +697,7 @@ def project_editor(project_id):
     project = Project.query.get(project_id)
 
     if not project:
-        return "Project not found ❌"
+        return "Project not found "
 
     return render_template("editor_tool.html", project=project)
 #rouet for featch project file-------
@@ -727,7 +734,7 @@ def save_new_file(project_id):
 
     name, ext = os.path.splitext(filename)
 
-    # 🔥 VERSION LOGIC
+    # VERSION LOGIC
     existing_files = File.query.filter_by(
         project_id=project_id,
         original_name=name
@@ -766,7 +773,7 @@ def save_to_drive():
     if not filename:
         return {"error": "Filename required"}, 400
 
-    # 🔥 UNIQUE FILE NAME
+    #  UNIQUE FILE NAME
     name, ext = os.path.splitext(filename)
     new_filename = f"{name}_{current_user.id}{ext}"
 
@@ -775,7 +782,7 @@ def save_to_drive():
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(code)
 
-    # 💾 SAVE IN DB
+    # SAVE IN DB
     file = DriveFile(
         filename=new_filename,
         user_id=current_user.id
@@ -786,7 +793,6 @@ def save_to_drive():
 
     return {"success": True}
 #-------------route for ai progress tracker------------
-
 
 @app.route('/project/<int:project_id>/ai', methods=['GET', 'POST'])
 @login_required
@@ -799,14 +805,7 @@ def ai_tracker(project_id):
     if request.method == "POST":
         prompt = request.form.get("prompt")
 
-        # 🔥 BASIC TASK GENERATOR (fake AI for now)
-        tasks = [
-            {"task": "Setup project structure", "done": False},
-            {"task": "Build authentication", "done": False},
-            {"task": "Create main feature", "done": False},
-            {"task": "Add UI", "done": False},
-            {"task": "Testing & deployment", "done": False}
-        ]
+        tasks = generate_ai_tasks(prompt)
 
         ai = AIProject(
             project_id=project_id,
@@ -822,15 +821,179 @@ def ai_tracker(project_id):
 
     if ai:
         tasks = json.loads(ai.tasks)
+
+        # 🔥 AI ANALYSIS (SAFE)
+        try:
+            code = get_project_code(project_id)
+            analysis = analyze_project_with_ai(ai.prompt, code, ai.progress)
+        except:
+            analysis = "AI analysis not available."
+
     else:
         tasks = []
+        analysis = None
 
     return render_template(
         "ai_tracker.html",
         project=project,
         ai=ai,
-        tasks=tasks
+        tasks=tasks,
+        analysis=analysis
     )
+@app.route('/ai/update/<int:ai_id>', methods=['POST'])
+@login_required
+def update_ai(ai_id):
+    ai = AIProject.query.get(ai_id)
+
+    if not ai:
+        return {"error": "Not found"}, 404
+
+    try:
+        data = request.json
+
+        if not data or "tasks" not in data:
+            return {"error": "Invalid data"}, 400
+
+        tasks = data.get("tasks")
+
+        total = len(tasks)
+        done = len([t for t in tasks if t.get("done")])
+
+        progress = int((done / total) * 100) if total > 0 else 0
+
+        # 🔥 SMART SUGGESTION
+        if progress == 0:
+            suggestion = "Start by setting up your project structure."
+        elif progress < 40:
+            suggestion = "Focus on core functionality first."
+        elif progress < 70:
+            suggestion = "Improve UI and features."
+        elif progress < 100:
+            suggestion = "Test and optimize your project."
+        else:
+            suggestion = "Project completed! 🚀"
+
+        ai.tasks = json.dumps(tasks)
+        ai.progress = progress
+        ai.suggestion = suggestion
+
+        db.session.commit()
+
+        return {
+            "success": True,
+            "progress": progress,
+            "suggestion": suggestion
+        }
+
+    except Exception as e:
+        print("Update AI Error:", e)
+        return {"error": "Server error"}, 500
+import requests
+import os
+import json
+import ast
+
+def generate_ai_tasks(prompt):
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": "Break this project into tasks and return JSON list like [{'task': '', 'done': false}]: " + prompt
+                        }
+                    ]
+                }
+            ]
+        }
+
+        response = requests.post(url, json=payload)
+        data = response.json()
+
+        print("GEMINI RESPONSE:", data)  # debug
+
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+
+        # try to convert to JSON
+        try:
+            return json.loads(text)
+        except:
+            return [
+                {"task": "Setup project", "done": False},
+                {"task": "Build core feature", "done": False}
+            ]
+
+    except Exception as e:
+        print("Gemini Error:", e)
+
+        return [
+            {"task": "Setup project", "done": False},
+            {"task": "Build core feature", "done": False}
+        ]
+def get_project_code(project_id):
+    files = File.query.filter_by(project_id=project_id).all()
+
+    code_data = ""
+
+    for file in files:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                    code_data += f"\n\n--- FILE: {file.original_name} ---\n"
+                    code_data += content[:1000]  # limit
+
+            except:
+                continue
+
+    return code_data
+def analyze_project_with_ai(prompt, code, progress):
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        full_prompt = f"""
+Project idea:
+{prompt}
+
+Progress: {progress}%
+
+Code:
+{code[:2000]}
+
+Give:
+1. What is built
+2. What to build next
+3. Improvements
+Keep short.
+"""
+
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": full_prompt}
+                    ]
+                }
+            ]
+        }
+
+        response = requests.post(url, json=payload)
+        data = response.json()
+
+        print("GEMINI ANALYSIS:", data)  # debug
+
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+
+    except Exception as e:
+        print("Gemini Analysis Error:", e)
+        return "AI analysis not available"
+print("KEY:", GEMINI_API_KEY)
+#-------------key testing ------------
+
 # ------------------ RUN ------------------
 if __name__ == "__main__":
     with app.app_context():
